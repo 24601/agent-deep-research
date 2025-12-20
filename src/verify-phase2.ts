@@ -1,8 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { FileSearchManager } from './file-search/FileSearchManager';
 import { FileUploader } from './file-search/FileUploader';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function verify() {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;
@@ -23,7 +23,15 @@ async function verify() {
 
   console.log('Listing stores...');
   const stores = await manager.listStores();
-  const found = stores.find(s => s.name === store.name);
+  let found = false;
+  // @ts-ignore - Pager is iterable
+  for await (const s of stores) {
+    if (s.name === store.name) {
+      found = true;
+      break;
+    }
+  }
+
   if (found) {
     console.log('Success: Store found in list.');
   } else {

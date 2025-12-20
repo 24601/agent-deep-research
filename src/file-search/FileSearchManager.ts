@@ -5,9 +5,9 @@ export class FileSearchManager {
 
   async createStore(displayName: string) {
     return await this.client.fileSearchStores.create({
-      fileSearchStore: {
+      config: {
         displayName,
-      },
+      }
     });
   }
 
@@ -16,10 +16,10 @@ export class FileSearchManager {
   }
 
   async getStore(name: string) {
-    return await this.client.fileSearchStores.get(name);
+    return await this.client.fileSearchStores.get({ name });
   }
 
   async deleteStore(name: string, force: boolean = false) {
-    return await this.client.fileSearchStores.delete(name, force ? { config: { force } } : undefined);
+    return await this.client.fileSearchStores.delete({ name, config: { force } });
   }
 }

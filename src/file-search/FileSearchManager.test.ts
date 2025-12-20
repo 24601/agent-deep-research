@@ -26,9 +26,9 @@ describe('FileSearchManager', () => {
     const result = await manager.createStore('my-store');
     
     expect(mockGenAI.fileSearchStores.create).toHaveBeenCalledWith({
-      fileSearchStore: {
+      config: {
         displayName: 'my-store',
-      },
+      }
     });
     expect(result).toEqual(mockStore);
   });
@@ -53,7 +53,7 @@ describe('FileSearchManager', () => {
 
     const result = await manager.getStore('fileSearchStores/my-store');
     
-    expect(mockGenAI.fileSearchStores.get).toHaveBeenCalledWith('fileSearchStores/my-store');
+    expect(mockGenAI.fileSearchStores.get).toHaveBeenCalledWith({ name: 'fileSearchStores/my-store' });
     expect(result).toEqual(mockStore);
   });
 
@@ -62,7 +62,7 @@ describe('FileSearchManager', () => {
 
     await manager.deleteStore('fileSearchStores/my-store');
     
-    expect(mockGenAI.fileSearchStores.delete).toHaveBeenCalledWith('fileSearchStores/my-store', undefined);
+    expect(mockGenAI.fileSearchStores.delete).toHaveBeenCalledWith({ name: 'fileSearchStores/my-store', config: { force: false } });
   });
 
   it('should delete a file search store with force option', async () => {
@@ -70,8 +70,6 @@ describe('FileSearchManager', () => {
 
     await manager.deleteStore('fileSearchStores/my-store', true);
     
-    expect(mockGenAI.fileSearchStores.delete).toHaveBeenCalledWith('fileSearchStores/my-store', {
-      config: { force: true },
-    });
+    expect(mockGenAI.fileSearchStores.delete).toHaveBeenCalledWith({ name: 'fileSearchStores/my-store', config: { force: true } });
   });
 });

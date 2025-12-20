@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
 import { GoogleGenAI } from '@google/genai';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class FileUploader {
   constructor(private client: GoogleGenAI) {}
