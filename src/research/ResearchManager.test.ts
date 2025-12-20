@@ -56,4 +56,12 @@ describe('ResearchManager', () => {
 
     expect(mockGenAI.interactions.cancel).toHaveBeenCalledWith('interaction-123');
   });
+
+  it('should delete an interaction', async () => {
+    (mockGenAI.interactions.delete as jest.Mock).mockResolvedValue({});
+
+    await manager.deleteResearch('interaction-123');
+
+    expect(mockGenAI.interactions.delete).toHaveBeenCalledWith('interaction-123');
+  });
 });
