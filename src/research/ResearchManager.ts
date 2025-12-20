@@ -4,6 +4,7 @@ export interface StartResearchParams {
   input: string;
   model: string;
   tools?: any[];
+  fileSearchStoreNames?: string[];
   agent?: string;
   agentConfig?: any;
 }
@@ -12,12 +13,22 @@ export class ResearchManager {
   constructor(private client: GoogleGenAI) {}
 
   async startResearch(params: StartResearchParams) {
-    const { input, model, tools, agent, agentConfig } = params;
+    const { input, model, tools = [], fileSearchStoreNames, agent, agentConfig } = params;
+    
+    const finalTools = [...tools];
+    if (fileSearchStoreNames && fileSearchStoreNames.length > 0) {
+      finalTools.push({
+        fileSearch: {
+          fileSearchStoreNames,
+        },
+      });
+    }
+
     return await this.client.interactions.create({
       input,
       model,
       background: true,
-      tools,
+      tools: finalTools.length > 0 ? finalTools : undefined,
       agent,
       agentConfig,
     });

@@ -39,6 +39,52 @@ describe('ResearchManager', () => {
     expect(result).toEqual(mockInteraction);
   });
 
+  it('should start research with fileSearchStoreNames helper', async () => {
+    const mockInteraction = { id: 'interaction-123', status: 'in_progress' };
+    (mockGenAI.interactions.create as jest.Mock).mockResolvedValue(mockInteraction);
+
+    const result = await manager.startResearch({
+      input: 'Search my files',
+      model: 'gemini-2.5-flash',
+      fileSearchStoreNames: ['store-1', 'store-2']
+    });
+
+    expect(mockGenAI.interactions.create).toHaveBeenCalledWith({
+      input: 'Search my files',
+      model: 'gemini-2.5-flash',
+      background: true,
+      tools: [{
+        fileSearch: {
+          fileSearchStoreNames: ['store-1', 'store-2']
+        }
+      }]
+    });
+    expect(result).toEqual(mockInteraction);
+  });
+
+  it('should support mixed tools and fileSearchStoreNames', async () => {
+    const mockInteraction = { id: 'interaction-123', status: 'in_progress' };
+    (mockGenAI.interactions.create as jest.Mock).mockResolvedValue(mockInteraction);
+
+    const result = await manager.startResearch({
+      input: 'Mixed tools',
+      model: 'gemini-2.5-flash',
+      tools: [{ googleSearch: {} }],
+      fileSearchStoreNames: ['store-1']
+    });
+
+    expect(mockGenAI.interactions.create).toHaveBeenCalledWith({
+      input: 'Mixed tools',
+      model: 'gemini-2.5-flash',
+      background: true,
+      tools: [
+        { googleSearch: {} },
+        { fileSearch: { fileSearchStoreNames: ['store-1'] } }
+      ]
+    });
+    expect(result).toEqual(mockInteraction);
+  });
+
   it('should get research status', async () => {
     const mockInteraction = { id: 'interaction-123', status: 'completed' };
     (mockGenAI.interactions.get as jest.Mock).mockResolvedValue(mockInteraction);
