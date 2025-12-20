@@ -2,7 +2,7 @@
 
 ## Phase 1: Project Initialization & Infrastructure
 
-- [ ] Task: Set up TypeScript project structure (package.json, tsconfig.json, eslint)
+- [x] Task: Set up TypeScript project structure (package.json, tsconfig.json, eslint) [9bf0ea4]
 - [ ] Task: Configure official MCP libraries and `@google/genai` dependency
 - [ ] Task: Implement Workspace Config Manager for `.gemini-research.json`
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Project Initialization & Infrastructure' (Protocol in workflow.md)
