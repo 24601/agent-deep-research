@@ -1,11 +1,11 @@
 # Plan: Core Deep Research and File Search Integration
 
-## Phase 1: Project Initialization & Infrastructure
+## Phase 1: Project Initialization & Infrastructure [checkpoint: c87d8ff]
 
 - [x] Task: Set up TypeScript project structure (package.json, tsconfig.json, eslint) [9bf0ea4]
 - [x] Task: Configure official MCP libraries and `@google/genai` dependency [7cf9cc3]
 - [x] Task: Implement Workspace Config Manager for `.gemini-research.json` [0618255]
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Project Initialization & Infrastructure' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Project Initialization & Infrastructure' (Protocol in workflow.md) [c87d8ff]
 
 ## Phase 2: File Search Management
 
