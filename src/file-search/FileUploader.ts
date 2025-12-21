@@ -59,7 +59,7 @@ export class FileUploader {
             hash: hash,
             last_modified: lastModified,
           }
-        },
+        } as any,
       });
       return op;
     } catch (error: any) {

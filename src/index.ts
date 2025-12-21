@@ -124,7 +124,7 @@ server.registerTool(
       // Retrieve the last text output
       const outputs = interaction.outputs || [];
       const lastOutput = outputs[outputs.length - 1];
-      const text = lastOutput?.text || 'No response generated.';
+      const text = (lastOutput?.type === 'text' && lastOutput.text) ? lastOutput.text : 'No response generated.';
       
       return { content: [{ type: 'text', text }] };
     } catch (error: any) {

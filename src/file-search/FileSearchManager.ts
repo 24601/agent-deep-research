@@ -23,7 +23,7 @@ export class FileSearchManager {
     return await this.client.fileSearchStores.delete({ name, config: { force } });
   }
 
-  async queryStore(storeName: string, query: string, model: string = 'gemini-2.5-flash') {
+  async queryStore(storeName: string, query: string, model: string = 'gemini-2.5-flash'): Promise<any> {
     return await this.client.interactions.create({
       model: model,
       input: query,
@@ -31,7 +31,7 @@ export class FileSearchManager {
           fileSearch: { 
               fileSearchStoreNames: [storeName] 
           } 
-      }]
+      } as any]
     });
   }
 }

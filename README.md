@@ -9,3 +9,10 @@ To use this extension, you must provide a Google GenAI API key. You can set it u
 2.  `GEMINI_API_KEY`
 
 If neither is set, the MCP server will exit with an error.
+
+You can also configure the default model used for queries (not the deep research agent) using:
+
+1.  `GEMINI_DEEP_RESEARCH_MODEL`
+2.  `GEMINI_MODEL`
+
+If neither is set, it defaults to `models/gemini-flash-latest`.
