@@ -1,5 +1,11 @@
+description = "Checks the status of a Deep Research session."
 prompt = """
-Check the status of the research interaction with ID: {{args}}
+Check the status of research ID: {{args}}
+
+If no ID is provided, check the `.gemini-research.json` file content (injected below) or ask the user.
+
+Current Workspace Config:
+!{cat .gemini-research.json || echo "No config found"}
 
 Call the `research_status` tool.
 """

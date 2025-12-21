@@ -1,3 +1,4 @@
+description = "Lists all available file search stores."
 prompt = """
 List all file search stores.
 

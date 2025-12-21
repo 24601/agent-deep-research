@@ -1,0 +1,7 @@
+description = "Uploads a file or directory to a file search store."
+prompt = """
+Upload the following path to a file search store: {{args}}
+
+1. If the store name is not provided in the arguments, list available stores using `file_search_list_stores` and ask the user to select one.
+2. Once the store is identified, call the `file_search_upload` tool.
+"""
