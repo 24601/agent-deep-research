@@ -121,11 +121,10 @@ server.registerTool(
   async ({ query, storeName }) => {
     try {
       const interaction = await fileSearchManager.queryStore(storeName, query, defaultModel);
-      console.error('Debug: Interaction Response:', JSON.stringify(interaction, null, 2));
-      // Retrieve the last text output
-      const outputs = interaction.outputs || [];
-      const lastOutput = outputs[outputs.length - 1];
-      const text = (lastOutput?.type === 'text' && lastOutput.text) ? lastOutput.text : 'No response generated.';
+      // Find the first text output
+      const outputs = (interaction.outputs || []) as any[];
+      const textOutput = outputs.find(o => o.type === 'text');
+      const text = textOutput?.text || 'No response generated.';
       
       return { content: [{ type: 'text', text }] };
     } catch (error: any) {
