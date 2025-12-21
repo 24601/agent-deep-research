@@ -107,6 +107,31 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  'file_search_query',
+  {
+    description: 'Queries a file search store using a model to get grounded answers.',
+    inputSchema: z.object({
+      query: z.string().describe('The question to ask the model'),
+      storeName: z.string().describe('The resource name of the file search store'),
+      model: z.string().optional().default('gemini-2.5-flash').describe('The model to use (default: gemini-2.5-flash)'),
+    }).shape,
+  },
+  async ({ query, storeName, model }) => {
+    try {
+      const interaction = await fileSearchManager.queryStore(storeName, query, model);
+      // Retrieve the last text output
+      const outputs = interaction.outputs || [];
+      const lastOutput = outputs[outputs.length - 1];
+      const text = lastOutput?.text || 'No response generated.';
+      
+      return { content: [{ type: 'text', text }] };
+    } catch (error: any) {
+      return { isError: true, content: [{ type: 'text', text: `Query failed: ${error.message}` }] };
+    }
+  }
+);
+
 // --- Research Tools ---
 
 server.registerTool(

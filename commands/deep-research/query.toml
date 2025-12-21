@@ -1,0 +1,7 @@
+prompt = """
+Query a file search store with the following input.
+
+Input: {{args}}
+
+Call the `file_search_query` tool.
+"""

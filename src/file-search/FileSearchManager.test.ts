@@ -15,6 +15,9 @@ describe('FileSearchManager', () => {
         get: jest.fn(),
         delete: jest.fn(),
       },
+      interactions: {
+        create: jest.fn(),
+      },
     } as unknown as jest.Mocked<GoogleGenAI>;
     manager = new FileSearchManager(mockGenAI);
   });
@@ -38,7 +41,6 @@ describe('FileSearchManager', () => {
       { name: 'fileSearchStores/store-1', displayName: 'Store 1' },
       { name: 'fileSearchStores/store-2', displayName: 'Store 2' },
     ];
-    // Mocking a pager-like response if it's paged, or just an array
     (mockGenAI.fileSearchStores.list as jest.Mock).mockResolvedValue(mockStores);
 
     const result = await manager.listStores();
@@ -71,5 +73,25 @@ describe('FileSearchManager', () => {
     await manager.deleteStore('fileSearchStores/my-store', true);
     
     expect(mockGenAI.fileSearchStores.delete).toHaveBeenCalledWith({ name: 'fileSearchStores/my-store', config: { force: true } });
+  });
+
+  it('should query a file search store', async () => {
+    const mockInteraction = {
+      outputs: [{ text: 'Answer grounded in file content.' }]
+    };
+    (mockGenAI.interactions.create as jest.Mock).mockResolvedValue(mockInteraction);
+
+    const result = await manager.queryStore('fileSearchStores/my-store', 'What is inside?', 'gemini-2.5-flash');
+
+    expect(mockGenAI.interactions.create).toHaveBeenCalledWith({
+      model: 'gemini-2.5-flash',
+      input: 'What is inside?',
+      tools: [{ 
+          fileSearch: { 
+              fileSearchStoreNames: ['fileSearchStores/my-store'] 
+          } 
+      }]
+    });
+    expect(result).toEqual(mockInteraction);
   });
 });
