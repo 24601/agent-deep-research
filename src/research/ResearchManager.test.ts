@@ -27,14 +27,20 @@ describe('ResearchManager', () => {
     const result = await manager.startResearch({
       input: 'Who is Allen Hutchison?',
       model: 'gemini-2.5-flash',
-      tools: [{ fileSearch: { fileSearchStoreNames: ['my-store'] } }]
+      tools: [{ 
+        type: 'file_search',
+        file_search_store_names: ['my-store']
+      } as any]
     });
 
     expect(mockGenAI.interactions.create).toHaveBeenCalledWith({
       input: 'Who is Allen Hutchison?',
       agent: 'gemini-2.5-flash',
       background: true,
-      tools: [{ fileSearch: { fileSearchStoreNames: ['my-store'] } }],
+      tools: [{ 
+        type: 'file_search',
+        file_search_store_names: ['my-store']
+      }],
     });
     expect(result).toEqual(mockInteraction);
   });
@@ -54,9 +60,8 @@ describe('ResearchManager', () => {
       agent: 'gemini-2.5-flash',
       background: true,
       tools: [{
-        fileSearch: {
-          fileSearchStoreNames: ['store-1', 'store-2']
-        }
+        type: 'file_search',
+        file_search_store_names: ['store-1', 'store-2']
       }],
     });
     expect(result).toEqual(mockInteraction);
@@ -79,7 +84,10 @@ describe('ResearchManager', () => {
       background: true,
       tools: [
         { googleSearch: {} },
-        { fileSearch: { fileSearchStoreNames: ['store-1'] } }
+        { 
+          type: 'file_search',
+          file_search_store_names: ['store-1']
+        }
       ],
     });
     expect(result).toEqual(mockInteraction);

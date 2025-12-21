@@ -7,7 +7,7 @@ export class FileSearchManager {
     return await this.client.fileSearchStores.create({
       config: {
         displayName,
-      }
+      },
     });
   }
 
@@ -27,11 +27,13 @@ export class FileSearchManager {
     return await this.client.interactions.create({
       model: model,
       input: query,
-      tools: [{ 
-          fileSearch: { 
-              fileSearchStoreNames: [storeName] 
-          } 
-      } as any]
+      tools: [
+        {
+          // @ts-ignore
+          type: 'file_search',
+          file_search_store_names: [storeName],
+        } as any,
+      ],
     });
   }
 }

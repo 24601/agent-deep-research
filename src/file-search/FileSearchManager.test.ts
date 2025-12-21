@@ -87,9 +87,8 @@ describe('FileSearchManager', () => {
       model: 'gemini-2.5-flash',
       input: 'What is inside?',
       tools: [{ 
-          fileSearch: { 
-              fileSearchStoreNames: ['fileSearchStores/my-store'] 
-          } 
+          type: 'file_search',
+          file_search_store_names: ['fileSearchStores/my-store'] 
       }]
     });
     expect(result).toEqual(mockInteraction);

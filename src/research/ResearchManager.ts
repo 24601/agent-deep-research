@@ -18,9 +18,9 @@ export class ResearchManager {
     const finalTools = [...tools];
     if (fileSearchStoreNames && fileSearchStoreNames.length > 0) {
       finalTools.push({
-        fileSearch: {
-          fileSearchStoreNames,
-        },
+        // @ts-ignore
+        type: 'file_search',
+        file_search_store_names: fileSearchStoreNames,
       });
     }
 
