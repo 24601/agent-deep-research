@@ -21,6 +21,8 @@ if (!apiKey) {
 
 const client = new GoogleGenAI({ apiKey });
 
+const defaultModel = process.env.GEMINI_DEEP_RESEARCH_MODEL || process.env.GEMINI_MODEL || 'models/gemini-flash-latest';
+
 const fileSearchManager = new FileSearchManager(client);
 const fileUploader = new FileUploader(client);
 const researchManager = new ResearchManager(client);
@@ -114,12 +116,11 @@ server.registerTool(
     inputSchema: z.object({
       query: z.string().describe('The question to ask the model'),
       storeName: z.string().describe('The resource name of the file search store'),
-      model: z.string().optional().default('gemini-2.5-flash').describe('The model to use (default: gemini-2.5-flash)'),
     }).shape,
   },
-  async ({ query, storeName, model }) => {
+  async ({ query, storeName }) => {
     try {
-      const interaction = await fileSearchManager.queryStore(storeName, query, model);
+      const interaction = await fileSearchManager.queryStore(storeName, query, defaultModel);
       // Retrieve the last text output
       const outputs = interaction.outputs || [];
       const lastOutput = outputs[outputs.length - 1];
