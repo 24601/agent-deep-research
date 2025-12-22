@@ -205,7 +205,7 @@ export class FileUploadError extends Error {
  */
 export interface UploadProgressEvent {
   /** Type of progress event */
-  type: 'start' | 'file_start' | 'file_complete' | 'file_error' | 'complete';
+  type: 'start' | 'file_start' | 'file_complete' | 'file_skipped' | 'file_error' | 'complete';
   /** Current file being processed */
   currentFile?: string;
   /** Index of current file (1-based) */
@@ -214,6 +214,8 @@ export interface UploadProgressEvent {
   totalFiles?: number;
   /** Number of files completed successfully */
   completedFiles?: number;
+  /** Number of files that were skipped (unchanged) */
+  skippedFiles?: number;
   /** Number of files that failed */
   failedFiles?: number;
   /** Error that occurred (for file_error type) */

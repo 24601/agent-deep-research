@@ -326,6 +326,188 @@ describe('FileUploader', () => {
     });
   });
 
+  describe('Smart sync', () => {
+    it('should skip unchanged files when smartSync is enabled', async () => {
+      // Mock the FileSearchManager listDocuments to return existing file with same hash
+      const mockListDocuments = jest.fn().mockResolvedValue([
+        {
+          name: 'documents/123',
+          customMetadata: [
+            { key: 'path', stringValue: 'file1.txt' },
+            { key: 'hash', stringValue: 'ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73' } // hash of 'content'
+          ]
+        }
+      ]);
+
+      // Access the private fileSearchManager to mock it
+      (uploader as any).fileSearchManager = {
+        listDocuments: mockListDocuments
+      };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+      (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('content'));
+      (mockGenAI.fileSearchStores.uploadToFileSearchStore as jest.Mock).mockResolvedValue({ name: 'op/1' });
+
+      const onProgress = jest.fn();
+      const result = await uploader.uploadDirectory('my-dir', 'fileSearchStores/my-store', {
+        smartSync: true,
+        onProgress
+      });
+
+      // Should not upload - file is unchanged
+      expect(mockGenAI.fileSearchStores.uploadToFileSearchStore).not.toHaveBeenCalled();
+      expect(result.length).toBe(0);
+
+      // Should emit file_skipped event
+      expect(onProgress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'file_skipped',
+          currentFile: 'file1.txt',
+          skippedFiles: 1
+        })
+      );
+    });
+
+    it('should upload changed files when smartSync is enabled', async () => {
+      // Mock existing file with different hash
+      const mockListDocuments = jest.fn().mockResolvedValue([
+        {
+          name: 'documents/123',
+          customMetadata: [
+            { key: 'path', stringValue: 'file1.txt' },
+            { key: 'hash', stringValue: 'different-hash' }
+          ]
+        }
+      ]);
+
+      (uploader as any).fileSearchManager = {
+        listDocuments: mockListDocuments
+      };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+      (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('content'));
+      (mockGenAI.fileSearchStores.uploadToFileSearchStore as jest.Mock).mockResolvedValue({ name: 'op/1' });
+
+      const result = await uploader.uploadDirectory('my-dir', 'fileSearchStores/my-store', {
+        smartSync: true
+      });
+
+      // Should upload - file has changed
+      expect(mockGenAI.fileSearchStores.uploadToFileSearchStore).toHaveBeenCalledTimes(1);
+      expect(result.length).toBe(1);
+    });
+
+    it('should upload new files when smartSync is enabled', async () => {
+      // Mock no existing files
+      const mockListDocuments = jest.fn().mockResolvedValue([]);
+
+      (uploader as any).fileSearchManager = {
+        listDocuments: mockListDocuments
+      };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+      (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('content'));
+      (mockGenAI.fileSearchStores.uploadToFileSearchStore as jest.Mock).mockResolvedValue({ name: 'op/1' });
+
+      const result = await uploader.uploadDirectory('my-dir', 'fileSearchStores/my-store', {
+        smartSync: true
+      });
+
+      // Should upload - file is new
+      expect(mockGenAI.fileSearchStores.uploadToFileSearchStore).toHaveBeenCalledTimes(1);
+      expect(result.length).toBe(1);
+    });
+
+    it('should upload all files when smartSync is disabled', async () => {
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+      (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('content'));
+      (mockGenAI.fileSearchStores.uploadToFileSearchStore as jest.Mock).mockResolvedValue({ name: 'op/1' });
+
+      const result = await uploader.uploadDirectory('my-dir', 'fileSearchStores/my-store', {
+        smartSync: false
+      });
+
+      // Should upload regardless of existing files
+      expect(mockGenAI.fileSearchStores.uploadToFileSearchStore).toHaveBeenCalledTimes(1);
+      expect(result.length).toBe(1);
+    });
+
+    it('should include skippedFiles count in complete event', async () => {
+      const mockListDocuments = jest.fn().mockResolvedValue([
+        {
+          name: 'documents/123',
+          customMetadata: [
+            { key: 'path', stringValue: 'file1.txt' },
+            { key: 'hash', stringValue: 'ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73' }
+          ]
+        }
+      ]);
+
+      (uploader as any).fileSearchManager = {
+        listDocuments: mockListDocuments
+      };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
+        { name: 'file2.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+      (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('content'));
+      (mockGenAI.fileSearchStores.uploadToFileSearchStore as jest.Mock).mockResolvedValue({ name: 'op/1' });
+
+      const onProgress = jest.fn();
+      await uploader.uploadDirectory('my-dir', 'fileSearchStores/my-store', {
+        smartSync: true,
+        onProgress
+      });
+
+      // Should emit complete event with skipped count
+      expect(onProgress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'complete',
+          skippedFiles: 1,
+          completedFiles: 1 // file2.txt is new so it gets uploaded
+        })
+      );
+    });
+
+    it('should handle listDocuments failure gracefully', async () => {
+      const mockListDocuments = jest.fn().mockRejectedValue(new Error('API error'));
+
+      (uploader as any).fileSearchManager = {
+        listDocuments: mockListDocuments
+      };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+      (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('content'));
+      (mockGenAI.fileSearchStores.uploadToFileSearchStore as jest.Mock).mockResolvedValue({ name: 'op/1' });
+
+      // Should not throw - continues with upload
+      const result = await uploader.uploadDirectory('my-dir', 'fileSearchStores/my-store', {
+        smartSync: true
+      });
+
+      // Should upload all files since we couldn't get existing hashes
+      expect(mockGenAI.fileSearchStores.uploadToFileSearchStore).toHaveBeenCalledTimes(1);
+      expect(result.length).toBe(1);
+    });
+  });
+
   describe('Error handling', () => {
     it('should throw FileUploadError when upload fails', async () => {
       (fs.statSync as jest.Mock).mockReturnValue({ size: 1024, mtime: new Date() });

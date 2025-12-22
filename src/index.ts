@@ -70,32 +70,40 @@ server.registerTool(
 server.registerTool(
   'file_search_upload',
   {
-    description: 'Uploads a file or recursively uploads a directory to a file search store.',
+    description: 'Uploads a file or recursively uploads a directory to a file search store. Use smartSync to skip unchanged files.',
     inputSchema: z.object({
       path: z.string().describe('Absolute path to the local file or directory'),
       storeName: z.string().describe('The resource name of the file search store (e.g., fileSearchStores/...)'),
+      smartSync: z.boolean().optional().default(false).describe('If true, skip uploading files that have not changed (based on hash comparison)'),
     }).shape,
   },
-  async ({ path: fsPath, storeName }) => {
+  async ({ path: fsPath, storeName, smartSync }) => {
     if (!fs.existsSync(fsPath)) {
       return { isError: true, content: [{ type: 'text', text: `Path not found: ${fsPath}` }] };
     }
 
     const stats = fs.statSync(fsPath);
     if (stats.isDirectory()) {
+        let lastSkippedCount = 0;
         const ops = await fileUploader.uploadDirectory(fsPath, storeName, {
+          smartSync,
           onProgress: (event) => {
             // Log progress events to stderr for visibility
             if (event.type === 'start') {
-              console.error(`Starting upload of ${event.totalFiles} files...`);
+              console.error(`Starting upload of ${event.totalFiles} files...${smartSync ? ' (smart sync enabled)' : ''}`);
             } else if (event.type === 'file_complete') {
               console.error(`[${event.percentage}%] Uploaded: ${event.currentFile}`);
+            } else if (event.type === 'file_skipped') {
+              console.error(`[${event.percentage}%] Skipped (unchanged): ${event.currentFile}`);
+              lastSkippedCount = event.skippedFiles ?? 0;
             } else if (event.type === 'complete') {
-              console.error(`Upload complete: ${event.completedFiles} succeeded, ${event.failedFiles} failed`);
+              const skipped = event.skippedFiles ?? 0;
+              console.error(`Upload complete: ${event.completedFiles} uploaded, ${skipped} skipped, ${event.failedFiles} failed`);
             }
           }
         });
-        return { content: [{ type: 'text', text: `Completed ${ops.length} upload operations to ${storeName} from directory ${fsPath}` }] };
+        const skippedMsg = smartSync ? `, ${lastSkippedCount} skipped (unchanged)` : '';
+        return { content: [{ type: 'text', text: `Completed ${ops.length} upload operations to ${storeName} from directory ${fsPath}${skippedMsg}` }] };
     } else if (stats.isFile()) {
         await fileUploader.uploadFile(fsPath, storeName);
         return { content: [{ type: 'text', text: `Uploaded file ${fsPath} to ${storeName}` }] };
