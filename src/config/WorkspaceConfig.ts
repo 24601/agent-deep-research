@@ -2,6 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 
+export const FailedFileSchema = z.object({
+  file: z.string(),
+  error: z.string(),
+});
+
+export type FailedFile = z.infer<typeof FailedFileSchema>;
+
 export const UploadOperationSchema = z.object({
   id: z.string(),
   status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
@@ -12,6 +19,7 @@ export const UploadOperationSchema = z.object({
   completedFiles: z.number(),
   skippedFiles: z.number(),
   failedFiles: z.number(),
+  failedFilesList: z.array(FailedFileSchema).default([]),
   startedAt: z.string(),
   completedAt: z.string().optional(),
   error: z.string().optional(),

@@ -118,8 +118,9 @@ server.registerTool(
                 uploadOperationManager.updateProgress(operationId, completedFiles, skippedFiles, failedFiles);
               } else if (event.type === 'file_error') {
                 failedFiles++;
-                console.error(`[${operationId}] Error uploading: ${event.currentFile}`);
-                uploadOperationManager.updateProgress(operationId, completedFiles, skippedFiles, failedFiles);
+                const errorMsg = event.error?.message || 'Unknown error';
+                console.error(`[${operationId}] Error uploading: ${event.currentFile} - ${errorMsg}`);
+                uploadOperationManager.addFailedFile(operationId, event.currentFile || 'unknown', errorMsg);
               } else if (event.type === 'complete') {
                 console.error(`[${operationId}] Upload complete: ${event.completedFiles} uploaded, ${event.skippedFiles ?? 0} skipped, ${event.failedFiles} failed`);
               }
@@ -188,7 +189,7 @@ server.registerTool(
       ? Math.round(((operation.completedFiles + operation.skippedFiles) / operation.totalFiles) * 100)
       : 0;
 
-    const statusInfo = {
+    const statusInfo: Record<string, unknown> = {
       operationId: operation.id,
       status: operation.status,
       path: operation.path,
@@ -205,6 +206,11 @@ server.registerTool(
       completedAt: operation.completedAt,
       error: operation.error,
     };
+
+    // Only include failedFilesList if there are failed files
+    if (operation.failedFilesList && operation.failedFilesList.length > 0) {
+      statusInfo.failedFilesList = operation.failedFilesList;
+    }
 
     return { content: [{ type: 'text', text: JSON.stringify(statusInfo, null, 2) }] };
   }

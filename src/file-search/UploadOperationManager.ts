@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { WorkspaceConfigManager, UploadOperation } from '../config/WorkspaceConfig';
+import { WorkspaceConfigManager, UploadOperation, FailedFile } from '../config/WorkspaceConfig';
 
 export class UploadOperationManager {
   /**
@@ -23,6 +23,7 @@ export class UploadOperationManager {
       completedFiles: 0,
       skippedFiles: 0,
       failedFiles: 0,
+      failedFilesList: [],
       startedAt: new Date().toISOString(),
     };
 
@@ -109,6 +110,22 @@ export class UploadOperationManager {
       completedFiles,
       skippedFiles,
       failedFiles,
+    });
+  }
+
+  /**
+   * Adds a failed file to the operation's failed files list.
+   */
+  addFailedFile(id: string, file: string, error: string): UploadOperation | undefined {
+    const existing = this.getOperation(id);
+    if (!existing) {
+      return undefined;
+    }
+
+    const failedFilesList = [...(existing.failedFilesList || []), { file, error }];
+    return this.updateOperation(id, {
+      failedFiles: failedFilesList.length,
+      failedFilesList,
     });
   }
 }

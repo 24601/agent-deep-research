@@ -176,4 +176,44 @@ describe('UploadOperationManager', () => {
       expect(updated?.failedFiles).toBe(2);
     });
   });
+
+  describe('addFailedFile', () => {
+    it('should add a failed file to the list', () => {
+      const operation = manager.createOperation('/path', 'store', false);
+
+      const updated = manager.addFailedFile(operation.id, 'test.txt', 'Upload failed');
+
+      expect(updated?.failedFiles).toBe(1);
+      expect(updated?.failedFilesList).toEqual([
+        { file: 'test.txt', error: 'Upload failed' }
+      ]);
+    });
+
+    it('should append multiple failed files', () => {
+      const operation = manager.createOperation('/path', 'store', false);
+
+      manager.addFailedFile(operation.id, 'file1.txt', 'Error 1');
+      const updated = manager.addFailedFile(operation.id, 'file2.txt', 'Error 2');
+
+      expect(updated?.failedFiles).toBe(2);
+      expect(updated?.failedFilesList).toEqual([
+        { file: 'file1.txt', error: 'Error 1' },
+        { file: 'file2.txt', error: 'Error 2' }
+      ]);
+    });
+
+    it('should return undefined for non-existent operation', () => {
+      const updated = manager.addFailedFile('non-existent-id', 'test.txt', 'Error');
+
+      expect(updated).toBeUndefined();
+    });
+  });
+
+  describe('createOperation', () => {
+    it('should initialize failedFilesList as empty array', () => {
+      const operation = manager.createOperation('/path', 'store', false);
+
+      expect(operation.failedFilesList).toEqual([]);
+    });
+  });
 });
