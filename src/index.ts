@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
-import { FileSearchManager, FileUploader, UploadOperationManager } from '@allenhutchison/gemini-utils';
+import { FileSearchManager, FileUploader, UploadOperationManager, Interaction, TextContent } from '@allenhutchison/gemini-utils';
 import { ResearchManager } from './research/ResearchManager.js';
 import { ReportGenerator } from './reporting/ReportGenerator.js';
 import { WorkspaceConfigManager, WorkspaceOperationStorage } from './config/WorkspaceConfig.js';
@@ -225,15 +225,23 @@ server.registerTool(
   },
   async ({ query, storeName }) => {
     try {
-      const interaction = await fileSearchManager.queryStore(storeName, query, defaultModel) as any;
-      // Find the first text output
-      const outputs = (interaction.outputs || []) as any[];
-      const textOutput = outputs.find((o: any) => o.type === 'text');
+      const interaction: Interaction = await fileSearchManager.queryStore(storeName, query, defaultModel);
+
+      // Runtime guard: ensure outputs is an array
+      if (!interaction.outputs || !Array.isArray(interaction.outputs)) {
+        return { content: [{ type: 'text', text: 'No response generated.' }] };
+      }
+
+      // Find the first text output with proper type guard
+      const textOutput = interaction.outputs.find(
+        (output): output is TextContent => output.type === 'text'
+      );
       const text = textOutput?.text || 'No response generated.';
-      
+
       return { content: [{ type: 'text', text }] };
-    } catch (error: any) {
-      return { isError: true, content: [{ type: 'text', text: `Query failed: ${error.message}` }] };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { isError: true, content: [{ type: 'text', text: `Query failed: ${message}` }] };
     }
   }
 );
