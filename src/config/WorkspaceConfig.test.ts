@@ -1,12 +1,29 @@
-import fs from 'fs';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import path from 'path';
-import { WorkspaceConfigManager, WorkspaceConfig } from './WorkspaceConfig';
 
-jest.mock('fs');
+// Mock fs before importing WorkspaceConfigManager
+const mockExistsSync = jest.fn();
+const mockReadFileSync = jest.fn();
+const mockWriteFileSync = jest.fn();
+
+jest.unstable_mockModule('fs', () => ({
+  default: {
+    existsSync: mockExistsSync,
+    readFileSync: mockReadFileSync,
+    writeFileSync: mockWriteFileSync,
+  },
+  existsSync: mockExistsSync,
+  readFileSync: mockReadFileSync,
+  writeFileSync: mockWriteFileSync,
+}));
+
+// Dynamic import after mocking
+const { WorkspaceConfigManager } = await import('./WorkspaceConfig');
+type WorkspaceConfigType = typeof import('./WorkspaceConfig').WorkspaceConfig;
 
 describe('WorkspaceConfigManager', () => {
   const mockConfigPath = path.resolve(process.cwd(), '.gemini-research.json');
-  const mockConfig: WorkspaceConfig = {
+  const mockConfig = {
     researchIds: ['research-123'],
     fileSearchStores: {
       'my-store': 'stores/store-456',
@@ -19,16 +36,16 @@ describe('WorkspaceConfigManager', () => {
   });
 
   it('should load existing config', () => {
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-    (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockConfig));
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(JSON.stringify(mockConfig));
 
     const config = WorkspaceConfigManager.load();
     expect(config).toEqual(mockConfig);
-    expect(fs.readFileSync).toHaveBeenCalledWith(mockConfigPath, 'utf-8');
+    expect(mockReadFileSync).toHaveBeenCalledWith(mockConfigPath, 'utf-8');
   });
 
   it('should return default config if file does not exist', () => {
-    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    mockExistsSync.mockReturnValue(false);
 
     const config = WorkspaceConfigManager.load();
     expect(config).toEqual({ researchIds: [], fileSearchStores: {}, uploadOperations: {} });
@@ -36,31 +53,31 @@ describe('WorkspaceConfigManager', () => {
 
   it('should save config', () => {
     WorkspaceConfigManager.save(mockConfig);
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
+    expect(mockWriteFileSync).toHaveBeenCalledWith(
       mockConfigPath,
       JSON.stringify(mockConfig, null, 2)
     );
   });
 
   it('should add a research ID', () => {
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-    (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ researchIds: [], fileSearchStores: {} }));
-    
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ researchIds: [], fileSearchStores: {} }));
+
     WorkspaceConfigManager.addResearchId('new-id');
-    
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
+
+    expect(mockWriteFileSync).toHaveBeenCalledWith(
         mockConfigPath,
         expect.stringContaining('"researchIds": [\n    "new-id"\n  ]')
     );
   });
 
-    it('should add a file search store', () => {
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-    (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ researchIds: [], fileSearchStores: {} }));
-    
+  it('should add a file search store', () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ researchIds: [], fileSearchStores: {} }));
+
     WorkspaceConfigManager.addFileSearchStore('new-store', 'stores/123');
-    
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
+
+    expect(mockWriteFileSync).toHaveBeenCalledWith(
         mockConfigPath,
         expect.stringContaining('"new-store": "stores/123"')
     );

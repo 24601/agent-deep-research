@@ -1,15 +1,18 @@
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
+import { OperationStorage, UploadOperation } from '@allenhutchison/gemini-utils';
 
-export const FailedFileSchema = z.object({
+// Re-export types from gemini-utils for convenience
+export type { OperationStorage, UploadOperation } from '@allenhutchison/gemini-utils';
+
+// Zod schemas for validation when reading from disk
+const FailedFileSchema = z.object({
   file: z.string(),
   error: z.string(),
 });
 
-export type FailedFile = z.infer<typeof FailedFileSchema>;
-
-export const UploadOperationSchema = z.object({
+const UploadOperationSchema = z.object({
   id: z.string(),
   status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
   path: z.string(),
@@ -24,8 +27,6 @@ export const UploadOperationSchema = z.object({
   completedAt: z.string().optional(),
   error: z.string().optional(),
 });
-
-export type UploadOperation = z.infer<typeof UploadOperationSchema>;
 
 export const WorkspaceConfigSchema = z.object({
   researchIds: z.array(z.string()).default([]),
@@ -90,5 +91,23 @@ export class WorkspaceConfigManager {
   static getAllUploadOperations(): Record<string, UploadOperation> {
     const config = this.load();
     return config.uploadOperations;
+  }
+}
+
+/**
+ * OperationStorage implementation that persists to disk via WorkspaceConfigManager.
+ * This adapter bridges gemini-utils' UploadOperationManager with our disk-based persistence.
+ */
+export class WorkspaceOperationStorage implements OperationStorage {
+  get(id: string): UploadOperation | undefined {
+    return WorkspaceConfigManager.getUploadOperation(id);
+  }
+
+  set(id: string, operation: UploadOperation): void {
+    WorkspaceConfigManager.setUploadOperation(id, operation);
+  }
+
+  getAll(): Record<string, UploadOperation> {
+    return WorkspaceConfigManager.getAllUploadOperations();
   }
 }

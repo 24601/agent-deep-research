@@ -1,3 +1,4 @@
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { ResearchManager } from './ResearchManager';
 import { GoogleGenAI } from '@google/genai';
 

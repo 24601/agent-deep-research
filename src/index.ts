@@ -2,12 +2,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
-import { FileSearchManager } from './file-search/FileSearchManager.js';
-import { FileUploader } from './file-search/FileUploader.js';
-import { UploadOperationManager } from './file-search/UploadOperationManager.js';
+import { FileSearchManager, FileUploader, UploadOperationManager } from '@allenhutchison/gemini-utils';
 import { ResearchManager } from './research/ResearchManager.js';
 import { ReportGenerator } from './reporting/ReportGenerator.js';
-import { WorkspaceConfigManager } from './config/WorkspaceConfig.js';
+import { WorkspaceConfigManager, WorkspaceOperationStorage } from './config/WorkspaceConfig.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -26,7 +24,7 @@ const defaultModel = process.env.GEMINI_DEEP_RESEARCH_MODEL || process.env.GEMIN
 
 const fileSearchManager = new FileSearchManager(client);
 const fileUploader = new FileUploader(client);
-const uploadOperationManager = new UploadOperationManager();
+const uploadOperationManager = new UploadOperationManager(new WorkspaceOperationStorage());
 const researchManager = new ResearchManager(client);
 const reportGenerator = new ReportGenerator();
 
@@ -227,10 +225,10 @@ server.registerTool(
   },
   async ({ query, storeName }) => {
     try {
-      const interaction = await fileSearchManager.queryStore(storeName, query, defaultModel);
+      const interaction = await fileSearchManager.queryStore(storeName, query, defaultModel) as any;
       // Find the first text output
       const outputs = (interaction.outputs || []) as any[];
-      const textOutput = outputs.find(o => o.type === 'text');
+      const textOutput = outputs.find((o: any) => o.type === 'text');
       const text = textOutput?.text || 'No response generated.';
       
       return { content: [{ type: 'text', text }] };

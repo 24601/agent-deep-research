@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm install && npm run build && node dist/index.js",
     "build": "tsc",
-    "test": "jest",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:mime-types": "ts-node scripts/test-mime-types.ts",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "npm run build"
@@ -18,7 +18,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/allenhutchison/gemini-cli-deep-research/issues"
   },
@@ -38,9 +38,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@allenhutchison/gemini-utils": "^0.1.0",
     "@google/genai": "^1.34.0",
     "@modelcontextprotocol/sdk": "^1.25.1",
-    "ignore": "^7.0.5",
     "zod": "^4.2.1"
   }
 }

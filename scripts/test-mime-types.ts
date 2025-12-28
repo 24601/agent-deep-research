@@ -19,9 +19,12 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
-import { FileUploader } from '../src/file-search/FileUploader';
-import { FileSearchManager } from '../src/file-search/FileSearchManager';
-import { getSupportedExtensions, EXTENSION_TO_MIME } from '../src/file-search/mimeTypes';
+import {
+  FileUploader,
+  FileSearchManager,
+  getSupportedExtensions,
+  EXTENSION_TO_MIME,
+} from '@allenhutchison/gemini-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
