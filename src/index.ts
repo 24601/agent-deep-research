@@ -2,9 +2,15 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
-import { FileSearchManager, FileUploader, UploadOperationManager, Interaction, TextContent } from '@allenhutchison/gemini-utils';
-import { ResearchManager } from './research/ResearchManager.js';
-import { ReportGenerator } from './reporting/ReportGenerator.js';
+import {
+  FileSearchManager,
+  FileUploader,
+  UploadOperationManager,
+  Interaction,
+  TextContent,
+  ResearchManager,
+  ReportGenerator,
+} from '@allenhutchison/gemini-utils';
 import { WorkspaceConfigManager, WorkspaceOperationStorage } from './config/WorkspaceConfig.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -291,7 +297,7 @@ server.registerTool(
     }).shape,
   },
   async ({ id }) => {
-    const interaction = await researchManager.getResearchStatus(id);
+    const interaction = await researchManager.getStatus(id);
     return { content: [{ type: 'text', text: JSON.stringify(interaction, null, 2) }] };
   }
 );
@@ -306,7 +312,7 @@ server.registerTool(
     }).shape,
   },
   async ({ id, filePath }) => {
-    const interaction = await researchManager.getResearchStatus(id);
+    const interaction = await researchManager.getStatus(id);
     if (interaction.status !== 'completed') {
       return { isError: true, content: [{ type: 'text', text: `Interaction ${id} is not completed. Current status: ${interaction.status}` }] };
     }
