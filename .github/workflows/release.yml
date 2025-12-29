@@ -1,0 +1,63 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Update versions in config files
+        run: |
+          # Update package.json version
+          npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
+          # Update gemini-extension.json version
+          jq '.version = "${{ steps.version.outputs.VERSION }}"' gemini-extension.json > tmp.json && mv tmp.json gemini-extension.json
+
+      - name: Create release archive
+        run: |
+          mkdir -p release
+          # Create archive with all necessary files
+          tar -czvf release/gemini-deep-research.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='coverage' \
+            --exclude='release' \
+            --exclude='.gemini-research.json' \
+            --exclude='*.log' \
+            --exclude='.npmrc' \
+            --exclude='.env*' \
+            .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/gemini-deep-research.tar.gz
+          generate_release_notes: true
+          make_latest: true

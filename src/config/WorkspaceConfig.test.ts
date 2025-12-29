@@ -19,7 +19,6 @@ jest.unstable_mockModule('fs', () => ({
 
 // Dynamic import after mocking
 const { WorkspaceConfigManager } = await import('./WorkspaceConfig');
-type WorkspaceConfigType = typeof import('./WorkspaceConfig').WorkspaceConfig;
 
 describe('WorkspaceConfigManager', () => {
   const mockConfigPath = path.resolve(process.cwd(), '.gemini-research.json');

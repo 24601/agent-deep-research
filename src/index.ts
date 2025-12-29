@@ -13,7 +13,6 @@ import {
 } from '@allenhutchison/gemini-utils';
 import { WorkspaceConfigManager, WorkspaceOperationStorage } from './config/WorkspaceConfig.js';
 import * as fs from 'fs';
-import * as path from 'path';
 
 // Initialize SDK and Managers
 const apiKey = process.env.GEMINI_DEEP_RESEARCH_API_KEY || process.env.GEMINI_API_KEY;
@@ -65,7 +64,6 @@ server.registerTool(
   async () => {
     const stores = await fileSearchManager.listStores();
     const storeList = [];
-    // @ts-ignore - stores is an async iterable Pager
     for await (const store of stores) {
       storeList.push({ name: store.name, displayName: store.displayName });
     }
