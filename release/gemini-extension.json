@@ -1,0 +1,12 @@
+{
+  "name": "gemini-deep-research",
+  "version": "0.0.1",
+  "contextFileName": "deep-research-GEMINI.md",
+  "mcpServers": {
+    "gemini-deep-research": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "${extensionPath}"
+    }
+  }
+}

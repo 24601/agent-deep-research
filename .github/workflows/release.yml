@@ -36,34 +36,19 @@ jobs:
         run: |
           # Update package.json version
           npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
-          # Update gemini-extension.json version
+          # Update gemini-extension.json versions (both dev and release)
           jq '.version = "${{ steps.version.outputs.VERSION }}"' gemini-extension.json > tmp.json && mv tmp.json gemini-extension.json
-
-      - name: Create release config
-        run: |
-          # Validate structure exists
-          if ! jq -e '.mcpServers["gemini-deep-research"]' gemini-extension.json > /dev/null; then
-            echo "Error: mcpServers['gemini-deep-research'] not found in gemini-extension.json"
-            exit 1
-          fi
-          # Create release-specific gemini-extension.json that runs node directly (no npm required)
-          jq '.mcpServers["gemini-deep-research"].command = "node" | .mcpServers["gemini-deep-research"].args = ["dist/index.js"]' gemini-extension.json > release-gemini-extension.json
-          # Verify the output is valid JSON
-          if ! jq empty release-gemini-extension.json 2>/dev/null; then
-            echo "Error: Failed to create valid release-gemini-extension.json"
-            exit 1
-          fi
+          jq '.version = "${{ steps.version.outputs.VERSION }}"' release/gemini-extension.json > tmp.json && mv tmp.json release/gemini-extension.json
 
       - name: Create release archive
         run: |
-          mkdir -p release
           # Create archive with only the necessary runtime files
           tar -czvf release/gemini-deep-research.tar.gz \
-            --transform 's|release-gemini-extension.json|gemini-extension.json|' \
+            --transform 's|release/gemini-extension.json|gemini-extension.json|' \
             dist \
             commands \
             node_modules \
-            release-gemini-extension.json \
+            release/gemini-extension.json \
             deep-research-GEMINI.md
 
       - name: Create GitHub Release
