@@ -97,6 +97,22 @@ describe('WorkspaceConfigManager', () => {
     warnSpy.mockRestore();
   });
 
+  it('should return default config and warn when schema validation fails', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockExistsSync.mockReturnValue(true);
+    // Valid JSON but invalid schema: researchIds should be an array, not a string
+    mockReadFileSync.mockReturnValue(JSON.stringify({ researchIds: 'not-an-array' }));
+
+    const config = WorkspaceConfigManager.load();
+
+    expect(config).toEqual({ researchIds: [], fileSearchStores: {}, uploadOperations: {} });
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to load workspace config'),
+      expect.anything()
+    );
+    warnSpy.mockRestore();
+  });
+
   it('should not add duplicate research ID', () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(JSON.stringify({ researchIds: ['existing-id'], fileSearchStores: {}, uploadOperations: {} }));

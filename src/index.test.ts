@@ -105,6 +105,18 @@ jest.unstable_mockModule('@modelcontextprotocol/sdk/server/stdio.js', () => ({
 // Set API key before importing
 process.env.GEMINI_API_KEY = 'test-api-key';
 
+// Helper type for MCP tool results
+interface McpToolResult {
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}
+
+// Helper function for type-safe result parsing
+function parseResultText(result: unknown): Record<string, unknown> {
+  const mcpResult = result as McpToolResult;
+  return JSON.parse(mcpResult.content[0].text);
+}
+
 describe('MCP Server Tools', () => {
   // Store tool handlers for testing
   let toolHandlers: Record<string, (params: Record<string, unknown>) => Promise<unknown>>;
@@ -296,12 +308,12 @@ describe('MCP Server Tools', () => {
         startedAt: '2024-01-01T00:00:00Z',
       });
 
-      const result = await toolHandlers['file_search_upload_status']({ operationId: 'op-123' }) as { content: Array<{ text: string }> };
+      const result = await toolHandlers['file_search_upload_status']({ operationId: 'op-123' });
 
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseResultText(result);
       expect(parsed.operationId).toBe('op-123');
       expect(parsed.status).toBe('in_progress');
-      expect(parsed.progress.percentage).toBe(70);
+      expect((parsed.progress as Record<string, unknown>).percentage).toBe(70);
     });
 
     it('should include failed files list when present', async () => {
@@ -323,9 +335,9 @@ describe('MCP Server Tools', () => {
         completedAt: '2024-01-01T00:01:00Z',
       });
 
-      const result = await toolHandlers['file_search_upload_status']({ operationId: 'op-123' }) as { content: Array<{ text: string }> };
+      const result = await toolHandlers['file_search_upload_status']({ operationId: 'op-123' });
 
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseResultText(result);
       expect(parsed.failedFilesList).toHaveLength(2);
     });
   });
@@ -449,10 +461,10 @@ describe('MCP Server Tools', () => {
       };
       mockGetStatus.mockResolvedValue(mockInteraction);
 
-      const result = await toolHandlers['research_status']({ id: 'research-123' }) as { content: Array<{ text: string }> };
+      const result = await toolHandlers['research_status']({ id: 'research-123' });
 
       expect(mockGetStatus).toHaveBeenCalledWith('research-123');
-      const parsed = JSON.parse(result.content[0].text);
+      const parsed = parseResultText(result);
       expect(parsed.id).toBe('research-123');
       expect(parsed.status).toBe('completed');
     });
