@@ -96,7 +96,7 @@ server.registerTool(
     const operationId = operation.id;
 
     // Start the upload in the background (fire-and-forget)
-    (async () => {
+    (async (): Promise<void> => {
       try {
         if (stats.isDirectory()) {
           let completedFiles = 0;
@@ -141,9 +141,10 @@ server.registerTool(
           uploadOperationManager.markCompleted(operationId);
           console.error(`[${operationId}] Upload complete`);
         }
-      } catch (error: any) {
-        console.error(`[${operationId}] Upload failed:`, error.message);
-        uploadOperationManager.markFailed(operationId, error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`[${operationId}] Upload failed:`, message);
+        uploadOperationManager.markFailed(operationId, message);
       }
     })();
 
@@ -327,7 +328,7 @@ server.registerTool(
 
 // --- Start Server ---
 
-async function main() {
+async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   // Ensure config file exists
   WorkspaceConfigManager.load();
