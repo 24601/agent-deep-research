@@ -41,8 +41,18 @@ jobs:
 
       - name: Create release config
         run: |
+          # Validate structure exists
+          if ! jq -e '.mcpServers["gemini-deep-research"]' gemini-extension.json > /dev/null; then
+            echo "Error: mcpServers['gemini-deep-research'] not found in gemini-extension.json"
+            exit 1
+          fi
           # Create release-specific gemini-extension.json that runs node directly (no npm required)
           jq '.mcpServers["gemini-deep-research"].command = "node" | .mcpServers["gemini-deep-research"].args = ["dist/index.js"]' gemini-extension.json > release-gemini-extension.json
+          # Verify the output is valid JSON
+          if ! jq empty release-gemini-extension.json 2>/dev/null; then
+            echo "Error: Failed to create valid release-gemini-extension.json"
+            exit 1
+          fi
 
       - name: Create release archive
         run: |
