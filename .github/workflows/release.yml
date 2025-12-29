@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -45,9 +46,13 @@ jobs:
           tar -czvf release/gemini-deep-research.tar.gz \
             --exclude='node_modules' \
             --exclude='.git' \
+            --exclude='.github' \
             --exclude='coverage' \
             --exclude='release' \
             --exclude='.gemini-research.json' \
+            --exclude='*.log' \
+            --exclude='.npmrc' \
+            --exclude='.env*' \
             .
 
       - name: Create GitHub Release
