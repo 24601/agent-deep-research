@@ -34,26 +34,110 @@ jobs:
 
       - name: Update versions in config files
         run: |
+          set -e
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
           # Update package.json version
-          npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
-          # Update gemini-extension.json version
-          jq '.version = "${{ steps.version.outputs.VERSION }}"' gemini-extension.json > tmp.json && mv tmp.json gemini-extension.json
+          npm version "$VERSION" --no-git-tag-version
+
+          # Helper function to safely update JSON file version
+          update_json_version() {
+            local file="$1"
+            local tmp_file="${file}.tmp"
+
+            # Check file exists
+            if [[ ! -f "$file" ]]; then
+              echo "Error: $file not found"
+              exit 1
+            fi
+
+            # Update version to temp file
+            if ! jq --arg v "$VERSION" '.version = $v' "$file" > "$tmp_file"; then
+              echo "Error: jq failed to process $file"
+              rm -f "$tmp_file"
+              exit 1
+            fi
+
+            # Validate temp file is well-formed JSON
+            if ! jq empty "$tmp_file" 2>/dev/null; then
+              echo "Error: Invalid JSON produced for $file"
+              rm -f "$tmp_file"
+              exit 1
+            fi
+
+            # Move temp file into place
+            mv "$tmp_file" "$file"
+            echo "Updated version in $file to $VERSION"
+          }
+
+          # Update both config files
+          update_json_version "gemini-extension.json"
+          update_json_version "release/gemini-extension.json"
+
+      - name: Prepare release staging directory
+        run: |
+          set -e
+          STAGING="release/staging"
+          rm -rf "$STAGING"
+          mkdir -p "$STAGING"
+
+          # Copy build artifacts and release assets
+          cp -r dist "$STAGING/"
+          cp -r commands "$STAGING/"
+          cp release/gemini-extension.json "$STAGING/gemini-extension.json"
+          cp deep-research-GEMINI.md "$STAGING/"
+
+          # Copy package files for production dependency installation
+          cp package.json "$STAGING/"
+          cp package-lock.json "$STAGING/"
+
+          echo "Staging directory prepared at $STAGING"
+
+      - name: Install production dependencies only
+        run: |
+          cd release/staging
+          npm ci --omit=dev
+          echo "Installed $(ls node_modules | wc -l) production dependencies"
 
       - name: Create release archive
         run: |
-          mkdir -p release
-          # Create archive with all necessary files
+          set -e
+          STAGING="release/staging"
+          errors=()
+
+          # Validate required directories exist in staging
+          for dir in dist commands node_modules; do
+            if [[ ! -d "$STAGING/$dir" ]]; then
+              errors+=("Missing required directory: $dir")
+            fi
+          done
+
+          # Validate required files exist in staging
+          for file in gemini-extension.json deep-research-GEMINI.md; do
+            if [[ ! -f "$STAGING/$file" ]]; then
+              errors+=("Missing required file: $file")
+            fi
+          done
+
+          # Fail if any validation errors
+          if [[ ${#errors[@]} -gt 0 ]]; then
+            echo "Error: Release archive validation failed:"
+            for err in "${errors[@]}"; do
+              echo "  - $err"
+            done
+            exit 1
+          fi
+
+          # Create archive from staging directory (production deps only)
           tar -czvf release/gemini-deep-research.tar.gz \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='coverage' \
-            --exclude='release' \
-            --exclude='.gemini-research.json' \
-            --exclude='*.log' \
-            --exclude='.npmrc' \
-            --exclude='.env*' \
-            .
+            -C "$STAGING" \
+            dist \
+            commands \
+            node_modules \
+            gemini-extension.json \
+            deep-research-GEMINI.md
+
+          echo "Release archive created: release/gemini-deep-research.tar.gz"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

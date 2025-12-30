@@ -33,5 +33,9 @@ Thumbs.db
 # Gemini Research local persistence
 .gemini-research.json
 
+# Release artifacts (staging dir and archives)
+release/staging/
+release/*.tar.gz
+
 # MIME type validation report (generated, contains environment-specific paths)
 scripts/mime-type-validation-report.json
