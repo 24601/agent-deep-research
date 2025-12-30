@@ -34,11 +34,45 @@ jobs:
 
       - name: Update versions in config files
         run: |
+          set -e
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
           # Update package.json version
-          npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
-          # Update gemini-extension.json versions (both dev and release)
-          jq '.version = "${{ steps.version.outputs.VERSION }}"' gemini-extension.json > tmp.json && mv tmp.json gemini-extension.json
-          jq '.version = "${{ steps.version.outputs.VERSION }}"' release/gemini-extension.json > tmp.json && mv tmp.json release/gemini-extension.json
+          npm version "$VERSION" --no-git-tag-version
+
+          # Helper function to safely update JSON file version
+          update_json_version() {
+            local file="$1"
+            local tmp_file="${file}.tmp"
+
+            # Check file exists
+            if [[ ! -f "$file" ]]; then
+              echo "Error: $file not found"
+              exit 1
+            fi
+
+            # Update version to temp file
+            if ! jq --arg v "$VERSION" '.version = $v' "$file" > "$tmp_file"; then
+              echo "Error: jq failed to process $file"
+              rm -f "$tmp_file"
+              exit 1
+            fi
+
+            # Validate temp file is well-formed JSON
+            if ! jq empty "$tmp_file" 2>/dev/null; then
+              echo "Error: Invalid JSON produced for $file"
+              rm -f "$tmp_file"
+              exit 1
+            fi
+
+            # Move temp file into place
+            mv "$tmp_file" "$file"
+            echo "Updated version in $file to $VERSION"
+          }
+
+          # Update both config files
+          update_json_version "gemini-extension.json"
+          update_json_version "release/gemini-extension.json"
 
       - name: Create release archive
         run: |
