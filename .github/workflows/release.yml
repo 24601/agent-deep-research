@@ -74,21 +74,47 @@ jobs:
           update_json_version "gemini-extension.json"
           update_json_version "release/gemini-extension.json"
 
+      - name: Prepare release staging directory
+        run: |
+          set -e
+          STAGING="release/staging"
+          rm -rf "$STAGING"
+          mkdir -p "$STAGING"
+
+          # Copy build artifacts and release assets
+          cp -r dist "$STAGING/"
+          cp -r commands "$STAGING/"
+          cp release/gemini-extension.json "$STAGING/gemini-extension.json"
+          cp deep-research-GEMINI.md "$STAGING/"
+
+          # Copy package files for production dependency installation
+          cp package.json "$STAGING/"
+          cp package-lock.json "$STAGING/"
+
+          echo "Staging directory prepared at $STAGING"
+
+      - name: Install production dependencies only
+        run: |
+          cd release/staging
+          npm ci --omit=dev
+          echo "Installed $(ls node_modules | wc -l) production dependencies"
+
       - name: Create release archive
         run: |
           set -e
+          STAGING="release/staging"
           errors=()
 
-          # Validate required directories exist
+          # Validate required directories exist in staging
           for dir in dist commands node_modules; do
-            if [[ ! -d "$dir" ]]; then
+            if [[ ! -d "$STAGING/$dir" ]]; then
               errors+=("Missing required directory: $dir")
             fi
           done
 
-          # Validate required files exist
-          for file in release/gemini-extension.json deep-research-GEMINI.md; do
-            if [[ ! -f "$file" ]]; then
+          # Validate required files exist in staging
+          for file in gemini-extension.json deep-research-GEMINI.md; do
+            if [[ ! -f "$STAGING/$file" ]]; then
               errors+=("Missing required file: $file")
             fi
           done
@@ -102,14 +128,16 @@ jobs:
             exit 1
           fi
 
-          # Create archive with only the necessary runtime files
+          # Create archive from staging directory (production deps only)
           tar -czvf release/gemini-deep-research.tar.gz \
-            --transform 's|release/gemini-extension.json|gemini-extension.json|' \
+            -C "$STAGING" \
             dist \
             commands \
             node_modules \
-            release/gemini-extension.json \
+            gemini-extension.json \
             deep-research-GEMINI.md
+
+          echo "Release archive created: release/gemini-deep-research.tar.gz"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
