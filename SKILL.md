@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: Deep research via the Gemini Interactions API (no Gemini CLI dependency). Automatic RAG grounding from local files with --context (creates ephemeral file search stores, uploads, cleans up). Cost estimation with --dry-run. Adaptive polling, structured output, follow-up research chains, and agent onboarding wizard.
+description: Deep research (CLI and agent skill) via the Gemini Interactions API. Automatic RAG grounding from local files (optional), cost estimation (--dry-run), adaptive polling, structured output, and agent onboarding. No Gemini CLI dependency. Universal AI agent skill for Claude Code, Amp, Codex, Clawdbot, and 30+ agents.
 license: MIT
 metadata:
   version: "1.2.1"

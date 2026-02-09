@@ -22,6 +22,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Validate SKILL.md
         run: |
           test -f SKILL.md || { echo "SKILL.md not found"; exit 1; }
@@ -30,7 +35,7 @@ jobs:
           echo "SKILL.md frontmatter is valid"
 
       - name: Check Python script syntax
-        run: python3 -m py_compile scripts/research.py scripts/store.py scripts/upload.py scripts/state.py
+        run: python3 -m py_compile scripts/research.py scripts/store.py scripts/upload.py scripts/state.py scripts/onboard.py
 
       - name: Smoke test
         run: uv run scripts/state.py --help
@@ -39,3 +44,34 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to ClawHub
+        if: env.CLAWHUB_TOKEN != ''
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          # Write token to clawhub config
+          mkdir -p "$HOME/.local/share/clawhub"
+          echo "{\"registry\":\"https://clawhub.ai\",\"token\":\"$CLAWHUB_TOKEN\"}" > "$HOME/.local/share/clawhub/config.json"
+
+          # Also try the macOS-style path (clawhub checks multiple locations)
+          mkdir -p "$HOME/Library/Application Support/clawhub"
+          echo "{\"registry\":\"https://clawhub.ai\",\"token\":\"$CLAWHUB_TOKEN\"}" > "$HOME/Library/Application Support/clawhub/config.json"
+
+          # Publish
+          npx clawhub publish . \
+            --slug agent-deep-research \
+            --name "Deep Research (Gemini)" \
+            --version "${{ steps.version.outputs.version }}" \
+            --changelog "Release ${{ github.ref_name }}: see https://github.com/24601/agent-deep-research/releases/tag/${{ github.ref_name }}" \
+            --tags latest
+
+      - name: Trigger skills.sh re-index
+        run: |
+          # Force a fresh install to trigger skills.sh crawl/indexing
+          npx -y skills add 24601/agent-deep-research --skill deep-research -a claude-code -y 2>&1 || true
+          echo "Triggered skills.sh re-index via install"

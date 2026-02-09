@@ -28,7 +28,7 @@ jobs:
           echo "SKILL.md frontmatter is valid"
 
       - name: Check Python script syntax
-        run: python3 -m py_compile scripts/research.py scripts/store.py scripts/upload.py scripts/state.py
+        run: python3 -m py_compile scripts/research.py scripts/store.py scripts/upload.py scripts/state.py scripts/onboard.py
 
       - name: Smoke test state.py
         run: uv run scripts/state.py --help
