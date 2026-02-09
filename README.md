@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/24601/agent-deep-research)](https://github.com/24601/agent-deep-research/releases)
 
-Deep research and RAG-grounded file search powered by Google Gemini. A universal AI agent skill that works with Claude Code, Amp, Codex, OpenCode, Cursor, Gemini CLI, and [30+ other agents](https://skills.sh).
+Deep research and RAG-grounded file search powered by the Google Gemini Interactions API. A universal AI agent skill that works with Claude Code, Amp, Codex, OpenCode, Cursor, Gemini CLI, and [30+ other agents](https://skills.sh). No dependency on the Gemini CLI -- uses the `google-genai` Python SDK directly via `uv run`.
 
 ## Installation
 
