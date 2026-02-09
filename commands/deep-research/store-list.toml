@@ -1,6 +1,0 @@
-description = "Lists all available file search stores."
-prompt = """
-List all file search stores.
-
-Call the `file_search_list_stores` tool.
-"""

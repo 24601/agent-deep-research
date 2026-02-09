@@ -1,7 +1,0 @@
-description = "Generates and saves a Markdown report from a completed research session."
-prompt = """
-Generate a report for research ID: {{args}}
-
-1. Use `research_status` to verify the session is completed.
-2. Call `research_save_report` to save the output to a file (e.g., `report-<id>.md`).
-"""

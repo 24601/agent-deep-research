@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussion
+    url: https://github.com/24601/agent-deep-research/discussions
+    about: Ask questions and discuss ideas in GitHub Discussions

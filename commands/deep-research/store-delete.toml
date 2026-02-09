@@ -1,7 +1,0 @@
-description = "Deletes a file search store."
-prompt = """
-Delete the file search store: {{args}}
-
-First, list the stores using `file_search_list_stores` to confirm the full name if needed.
-Then call the `file_search_delete_store` tool.
-"""

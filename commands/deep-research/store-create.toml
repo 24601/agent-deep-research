@@ -1,6 +1,0 @@
-description = "Creates a new file search store."
-prompt = """
-Create a new file search store with the display name: {{args}}
-
-Call the `file_search_create_store` tool.
-"""

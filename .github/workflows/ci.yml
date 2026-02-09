@@ -7,28 +7,40 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  skill-validation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          python-version: '3.12'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
-      - name: Check TypeScript types
-        run: npm run typecheck
+      - name: Verify SKILL.md exists with valid frontmatter
+        run: |
+          test -f SKILL.md || { echo "SKILL.md not found"; exit 1; }
+          head -10 SKILL.md | grep -q '^name:' || { echo "Missing 'name' in SKILL.md frontmatter"; exit 1; }
+          head -10 SKILL.md | grep -q '^description:' || { echo "Missing 'description' in SKILL.md frontmatter"; exit 1; }
+          echo "SKILL.md frontmatter is valid"
 
-      - name: Run linter
-        run: npm run lint
+      - name: Check Python script syntax
+        run: python3 -m py_compile scripts/research.py scripts/store.py scripts/upload.py scripts/state.py
 
-      - name: Run tests
-        run: npm test
+      - name: Smoke test state.py
+        run: uv run scripts/state.py --help
 
-      - name: Build
-        run: npm run build
+      - name: Verify reference files exist
+        run: |
+          test -f references/online_docs.md || { echo "Missing references/online_docs.md"; exit 1; }
+          test -f references/file_search_guide.md || { echo "Missing references/file_search_guide.md"; exit 1; }
+          echo "All reference files present"
+
+      - name: Verify community files exist
+        run: |
+          test -f CHANGELOG.md || { echo "Missing CHANGELOG.md"; exit 1; }
+          test -f CONTRIBUTING.md || { echo "Missing CONTRIBUTING.md"; exit 1; }
+          echo "All community files present"
