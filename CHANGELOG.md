@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-02-09
+
+### Changed
+- **SKILL.md description optimized** to ~75 tokens for agent context window efficiency
+- **Security & Trust section** added to README (no obfuscation, no telemetry, fully auditable)
+- **GitHub topics expanded** to 20 (added agent-skill, openclaw-skill, claude-code-skill, autonomous-agent, python, uv, and more)
+- **Pi agent installation** instructions added to README
+- **ClawHub auto-publish** on release via GitHub Actions (uses CLAWHUB_TOKEN secret)
+- **skills.sh re-index** triggered automatically on release
+
+### Added
+- 4 contributor-friendly GitHub issues seeded (good-first-issue, prompt-engineering, documentation, test-case)
+- Pi agent (`badlogic/pi-mono`) and OpenClaw/ClawHub install instructions in README
+
 ## [1.2.1] - 2026-02-08
 
 ### Changed
@@ -58,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[1.2.2]: https://github.com/24601/agent-deep-research/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/24601/agent-deep-research/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/24601/agent-deep-research/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/24601/agent-deep-research/compare/v1.0.0...v1.1.0
