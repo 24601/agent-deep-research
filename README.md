@@ -55,10 +55,10 @@ Then use `/skill:deep-research` in Pi, or let Pi auto-detect it from the descrip
 ### ClawHub (OpenClaw registry)
 
 ```bash
-npx clawhub install deep-research
+npx clawhub install agent-deep-research
 ```
 
-Or browse at [clawhub.ai](https://clawhub.ai).
+Or browse at [clawhub.ai/skills/agent-deep-research](https://clawhub.ai/skills/agent-deep-research).
 
 ## Prerequisites
 
