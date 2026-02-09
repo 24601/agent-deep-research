@@ -1,6 +1,6 @@
 ---
-name: agent-deep-research
-description: Deep research using Google Gemini. Start background research jobs, check status, save reports. Create file search stores for RAG-grounded research. Upload documents and directories for semantic search and Q&A. Manage workspace state for research sessions.
+name: deep-research
+description: Deep research powered by Google Gemini. Start background research jobs, check status, save reports. RAG-grounded research with file search stores. Upload documents for semantic search and Q&A. Cost estimation with --dry-run. Agent onboarding and setup wizard.
 license: MIT
 metadata:
   version: "1.2.0"
