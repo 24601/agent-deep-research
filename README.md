@@ -67,7 +67,30 @@ uv run scripts/research.py report <interaction-id> --output report.md
 
 # Structured output for agent integration
 uv run scripts/research.py start "Deep analysis" --output-dir ./research-output
+
+# Research grounded in local files (auto-creates store, uploads, cleans up)
+uv run scripts/research.py start "How does auth work?" --context ./src --output report.md
+
+# Filter context to specific file types
+uv run scripts/research.py start "Analyze the Python code" --context ./src --context-extensions py,md
 ```
+
+## Onboarding
+
+First-time setup for humans and agents:
+
+```bash
+# Quick config check
+uv run scripts/onboard.py --check
+
+# Interactive setup wizard (humans)
+uv run scripts/onboard.py --interactive
+
+# Capabilities manifest (agents)
+uv run scripts/onboard.py --agent
+```
+
+For AI agents integrating this skill, see [AGENTS.md](AGENTS.md) for structured capabilities, decision trees, output contracts, and common workflows.
 
 ## Features
 
@@ -93,6 +116,20 @@ Key flags:
 | `--no-adaptive-poll` | Use fixed polling interval instead of history-adaptive |
 | `--follow-up ID` | Continue a previous research session |
 | `--no-thoughts` | Hide intermediate thinking steps |
+| `--context PATH` | Auto-create ephemeral store from local files for RAG-grounded research |
+| `--context-extensions EXT` | Filter context uploads by extension (e.g. `py,md`) |
+| `--keep-context` | Keep the ephemeral context store after research completes |
+| `--dry-run` | Estimate costs without starting research |
+
+### Cost Estimation
+
+Preview estimated costs before running research:
+
+```bash
+uv run scripts/research.py start "Analyze the codebase" --context ./src --dry-run
+```
+
+Estimates are heuristic-based (the Gemini API does not return token counts). After research completes with `--output-dir`, `metadata.json` includes post-run usage estimates based on actual output size and duration.
 
 ### Adaptive Polling
 
@@ -209,7 +246,7 @@ When using `--store` with `research.py start`, the Gemini Interactions API occas
 
 **Workaround**: If store-grounded research times out, use `research.py status <id>` to check if the job completed on Gemini's side, then `research.py report <id>` to save results. Alternatively, query the store directly with `store.py query` for faster RAG-grounded answers that don't require the deep research agent.
 
-This is an upstream issue with the experimental Gemini Interactions API, not a bug in this skill.
+This applies to both `--store` and `--context` (which creates an ephemeral store under the hood). This is an upstream issue with the experimental Gemini Interactions API, not a bug in this skill.
 
 ## References
 

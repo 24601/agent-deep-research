@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-08
+
+### Added
+- **Agent onboarding** (`scripts/onboard.py`) -- interactive setup wizard for humans (`--interactive`) and JSON capabilities manifest for AI agents (`--agent`), with quick config check (`--check`)
+- **AGENTS.md** -- structured agent briefing with capabilities table, decision trees, output contracts, common workflows, and pricing reference
+- **Cost estimation** (`--dry-run` flag on `research.py start`) -- preview estimated costs before running research, based on context file size and pricing heuristics
+- **Post-run usage metadata** -- after research completes with `--output-dir`, `metadata.json` includes a `usage` key with estimated tokens, costs, context stats, and source counts
+- **"For AI Agents" section** in SKILL.md pointing to onboard.py and AGENTS.md
+
+## [1.1.0] - 2026-02-09
+
+### Added
+- **`--context` flag** (`scripts/research.py`) -- point at a local file or directory to automatically create an ephemeral file search store, upload files, and run RAG-grounded deep research in a single command
+- **`--context-extensions` flag** -- filter which file types to upload from a context path (e.g. `--context-extensions py,md`)
+- **`--keep-context` flag** -- prevent automatic cleanup of the ephemeral store after research completes, allowing reuse via `--store`
+- Ephemeral context stores are tracked in `.gemini-research.json` under `contextStores` for cleanup visibility
+
 ## [1.0.0] - 2026-02-08
 
 ### Added
@@ -34,4 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[1.2.0]: https://github.com/24601/agent-deep-research/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/24601/agent-deep-research/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/24601/agent-deep-research/releases/tag/v1.0.0

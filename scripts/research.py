@@ -13,7 +13,9 @@ tasks, poll their status, and export the final report as Markdown.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import mimetypes
 import os
 import sys
 import time
@@ -37,8 +39,142 @@ DEFAULT_AGENT = os.environ.get(
 )
 
 # ---------------------------------------------------------------------------
+# MIME type maps (duplicated from upload.py -- PEP 723 standalone scripts)
+# ---------------------------------------------------------------------------
+
+VALIDATED_MIME: dict[str, str] = {
+    ".pdf": "application/pdf",
+    ".xml": "application/xml",
+    ".txt": "text/plain",
+    ".text": "text/plain",
+    ".log": "text/plain",
+    ".out": "text/plain",
+    ".env": "text/plain",
+    ".gitignore": "text/plain",
+    ".gitattributes": "text/plain",
+    ".dockerignore": "text/plain",
+    ".html": "text/html",
+    ".htm": "text/html",
+    ".md": "text/markdown",
+    ".markdown": "text/markdown",
+    ".mdown": "text/markdown",
+    ".mkd": "text/markdown",
+    ".c": "text/x-c",
+    ".h": "text/x-c",
+    ".java": "text/x-java",
+    ".kt": "text/x-kotlin",
+    ".kts": "text/x-kotlin",
+    ".go": "text/x-go",
+    ".py": "text/x-python",
+    ".pyw": "text/x-python",
+    ".pyx": "text/x-python",
+    ".pyi": "text/x-python",
+    ".pl": "text/x-perl",
+    ".pm": "text/x-perl",
+    ".t": "text/x-perl",
+    ".pod": "text/x-perl",
+    ".lua": "text/x-lua",
+    ".erl": "text/x-erlang",
+    ".hrl": "text/x-erlang",
+    ".tcl": "text/x-tcl",
+    ".bib": "text/x-bibtex",
+    ".diff": "text/x-diff",
+}
+
+TEXT_FALLBACK_EXTENSIONS: set[str] = {
+    ".js", ".mjs", ".cjs", ".jsx",
+    ".ts", ".mts", ".cts", ".tsx",
+    ".json", ".jsonc", ".json5",
+    ".css", ".scss", ".sass", ".less", ".styl",
+    ".vue", ".svelte", ".astro",
+    ".sh", ".bash", ".zsh", ".fish", ".ksh",
+    ".bat", ".cmd", ".ps1", ".psm1",
+    ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
+    ".properties", ".editorconfig", ".prettierrc",
+    ".eslintrc", ".babelrc", ".npmrc",
+    ".rb", ".php", ".rs", ".swift", ".scala", ".clj",
+    ".ex", ".exs", ".hs", ".ml", ".fs", ".fsx",
+    ".r", ".jl", ".nim", ".zig", ".dart",
+    ".coffee", ".elm", ".v", ".cr", ".groovy",
+    ".gradle", ".cmake", ".makefile", ".mk",
+    ".dockerfile", ".tf", ".hcl",
+    ".sql", ".graphql", ".gql", ".proto",
+    ".csv", ".tsv", ".rst", ".adoc", ".tex", ".latex",
+    ".sbt", ".pom",
+}
+
+BINARY_EXTENSIONS: set[str] = {
+    ".exe", ".dll", ".so", ".dylib", ".a", ".lib",
+    ".zip", ".tar", ".gz", ".bz2", ".7z", ".rar", ".xz",
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp",
+    ".mp3", ".mp4", ".wav", ".avi", ".mkv", ".mov", ".flac", ".ogg",
+    ".class", ".pyc", ".pyo", ".o", ".obj",
+    ".wasm", ".bin", ".dat",
+    ".ttf", ".otf", ".woff", ".woff2", ".eot",
+}
+
+# ---------------------------------------------------------------------------
+# Pricing estimates (heuristic -- Gemini API does not return token counts)
+# ---------------------------------------------------------------------------
+
+_PRICE_ESTIMATES = {
+    "embedding_per_1m_tokens": 0.15,       # gemini-embedding-001
+    "pro_input_per_1m_tokens": 2.00,        # Gemini Pro <=200k context
+    "pro_output_per_1m_tokens": 12.00,      # Gemini Pro <=200k context
+    "chars_per_token": 4,                   # rough estimate for English text
+    "research_base_input_tokens": 250_000,  # typical deep research input
+    "research_base_output_tokens": 60_000,  # typical deep research output
+    "research_grounded_multiplier": 1.3,    # grounded research uses ~30% more tokens
+}
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _resolve_mime(filepath: Path) -> str | None:
+    """Return MIME type for a file, or None if unsupported."""
+    ext = filepath.suffix.lower()
+    name_lower = filepath.name.lower()
+    if name_lower in (".gitignore", ".gitattributes", ".dockerignore",
+                       ".editorconfig", ".prettierrc", ".eslintrc",
+                       ".babelrc", ".npmrc", ".env"):
+        return VALIDATED_MIME.get(name_lower, "text/plain")
+    if ext in VALIDATED_MIME:
+        return VALIDATED_MIME[ext]
+    if ext in TEXT_FALLBACK_EXTENSIONS:
+        return "text/plain"
+    if ext in BINARY_EXTENSIONS:
+        return None
+    guessed, _ = mimetypes.guess_type(str(filepath))
+    if guessed and guessed.startswith("text/"):
+        return "text/plain"
+    return None
+
+
+def _file_hash(filepath: Path) -> str:
+    """Compute SHA-256 hash of a file for smart-sync."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _collect_files(
+    root: Path,
+    extensions: set[str] | None = None,
+) -> list[Path]:
+    """Recursively collect uploadable files from a directory."""
+    files: list[Path] = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file():
+            continue
+        if extensions and p.suffix.lower() not in extensions:
+            continue
+        if _resolve_mime(p) is not None:
+            files.append(p)
+    return files
+
 
 def get_api_key() -> str:
     """Resolve the API key from environment variables."""
@@ -112,6 +248,103 @@ def _percentile(sorted_values: list[float], p: float) -> float:
     return sorted_values[f] + (k - f) * (sorted_values[c] - sorted_values[f])
 
 
+def _estimate_context_cost(context_path: Path, extensions: set[str] | None = None) -> dict:
+    """Estimate the cost of uploading context files."""
+    if context_path.is_file():
+        files = [context_path] if _resolve_mime(context_path) else []
+    elif context_path.is_dir():
+        files = _collect_files(context_path, extensions)
+    else:
+        return {"files": 0, "total_bytes": 0, "estimated_tokens": 0, "estimated_cost_usd": 0.0}
+
+    total_bytes = sum(f.stat().st_size for f in files)
+    estimated_tokens = total_bytes // _PRICE_ESTIMATES["chars_per_token"]
+    cost = (estimated_tokens / 1_000_000) * _PRICE_ESTIMATES["embedding_per_1m_tokens"]
+
+    return {
+        "files": len(files),
+        "total_bytes": total_bytes,
+        "estimated_tokens": estimated_tokens,
+        "estimated_cost_usd": round(cost, 4),
+    }
+
+
+def _estimate_research_cost(grounded: bool, history: list[dict] | None = None) -> dict:
+    """Estimate the cost of a research query based on history or defaults."""
+    P = _PRICE_ESTIMATES
+
+    # Try to refine from history
+    basis = "default_estimate"
+    input_tokens = P["research_base_input_tokens"]
+    output_tokens = P["research_base_output_tokens"]
+
+    if history:
+        matching = [
+            e for e in history
+            if e.get("grounded", False) == grounded
+            and isinstance(e.get("duration_seconds"), (int, float))
+        ]
+        if len(matching) >= 3:
+            # Use duration as a rough proxy for token usage:
+            # longer research -> more search iterations -> more tokens
+            avg_duration = sum(e["duration_seconds"] for e in matching) / len(matching)
+            # Scale tokens relative to a baseline of 120 seconds
+            scale = max(0.5, avg_duration / 120.0)
+            input_tokens = int(P["research_base_input_tokens"] * scale)
+            output_tokens = int(P["research_base_output_tokens"] * scale)
+            basis = "historical_average"
+
+    if grounded:
+        input_tokens = int(input_tokens * P["research_grounded_multiplier"])
+
+    input_cost = (input_tokens / 1_000_000) * P["pro_input_per_1m_tokens"]
+    output_cost = (output_tokens / 1_000_000) * P["pro_output_per_1m_tokens"]
+
+    return {
+        "estimated_input_tokens": input_tokens,
+        "estimated_output_tokens": output_tokens,
+        "estimated_cost_usd": round(input_cost + output_cost, 4),
+        "basis": basis,
+    }
+
+
+def _estimate_usage_from_output(
+    report_text: str,
+    duration_seconds: int,
+    grounded: bool,
+    context_files: int = 0,
+    context_bytes: int = 0,
+    source_count: int = 0,
+) -> dict:
+    """Build post-run usage metadata from actual output data."""
+    P = _PRICE_ESTIMATES
+    output_bytes = len(report_text.encode("utf-8"))
+    estimated_output_tokens = output_bytes // P["chars_per_token"]
+
+    # Estimate input tokens from duration (same heuristic as dry-run)
+    scale = max(0.5, duration_seconds / 120.0)
+    estimated_input_tokens = int(P["research_base_input_tokens"] * scale)
+    if grounded:
+        estimated_input_tokens = int(estimated_input_tokens * P["research_grounded_multiplier"])
+
+    input_cost = (estimated_input_tokens / 1_000_000) * P["pro_input_per_1m_tokens"]
+    output_cost = (estimated_output_tokens / 1_000_000) * P["pro_output_per_1m_tokens"]
+    context_tokens = context_bytes // P["chars_per_token"]
+    context_cost = (context_tokens / 1_000_000) * P["embedding_per_1m_tokens"]
+    total_cost = input_cost + output_cost + context_cost
+
+    return {
+        "disclaimer": "Estimates based on output size and pricing heuristics. Actual billing may differ.",
+        "output_bytes": output_bytes,
+        "estimated_output_tokens": estimated_output_tokens,
+        "estimated_input_tokens": estimated_input_tokens,
+        "estimated_cost_usd": round(total_cost, 4),
+        "context_files_uploaded": context_files,
+        "context_bytes_uploaded": context_bytes,
+        "source_urls_found": source_count,
+    }
+
+
 def _get_adaptive_poll_interval(
     elapsed: float, history: list[dict], grounded: bool,
 ) -> float:
@@ -167,6 +400,7 @@ def _write_output_dir(
     interaction: object,
     report_text: str,
     duration_seconds: int | None = None,
+    usage: dict | None = None,
 ) -> dict:
     """Write research results to a structured directory and return a compact summary."""
     base = Path(output_dir)
@@ -224,6 +458,8 @@ def _write_output_dir(
     }
     if duration_seconds is not None:
         metadata["duration_seconds"] = duration_seconds
+    if usage is not None:
+        metadata["usage"] = usage
     (research_dir / "metadata.json").write_text(
         json.dumps(metadata, indent=2) + "\n"
     )
@@ -242,6 +478,8 @@ def _write_output_dir(
     }
     if duration_seconds is not None:
         compact["duration_seconds"] = duration_seconds
+    if usage is not None and "estimated_cost_usd" in usage:
+        compact["estimated_cost_usd"] = usage["estimated_cost_usd"]
 
     return compact
 
@@ -255,6 +493,123 @@ def resolve_store_name(name_or_alias: str) -> str:
     if name_or_alias in stores:
         return stores[name_or_alias]
     return name_or_alias
+
+# ---------------------------------------------------------------------------
+# --context helpers
+# ---------------------------------------------------------------------------
+
+def _upload_context_files(
+    client: genai.Client,
+    context_path: Path,
+    extensions: set[str] | None = None,
+) -> tuple[str, int, int]:
+    """Create an ephemeral store, upload files from *context_path*.
+
+    Returns (store_resource_name, file_count, total_bytes).
+    """
+    path_hash = hashlib.sha256(str(context_path.resolve()).encode()).hexdigest()[:12]
+    ts = int(time.time())
+    display_name = f"context-{path_hash}-{ts}"
+
+    store = client.file_search_stores.create(
+        config={"display_name": display_name},
+    )
+    store_name: str = store.name
+    console.print(f"Created context store: [bold]{display_name}[/bold]")
+
+    # Collect files
+    if context_path.is_file():
+        if _resolve_mime(context_path) is None:
+            console.print(f"[red]Error:[/red] Unsupported file type: {context_path.suffix}")
+            sys.exit(1)
+        files = [context_path]
+    elif context_path.is_dir():
+        files = _collect_files(context_path, extensions)
+        if not files:
+            console.print("[yellow]No uploadable files found in context path.[/yellow]")
+            # Clean up the empty store
+            try:
+                client.file_search_stores.delete(name=store_name)
+            except Exception:
+                pass
+            sys.exit(1)
+    else:
+        console.print(f"[red]Error:[/red] Context path is not a file or directory: {context_path}")
+        sys.exit(1)
+
+    console.print(f"Uploading [bold]{len(files)}[/bold] file(s) to context store...")
+
+    # Smart-sync always on for context stores
+    state = load_state()
+    hash_cache: dict[str, str] = state.get("_hashCache", {}).get(store_name, {})
+
+    uploaded = 0
+    skipped = 0
+    for filepath in files:
+        rel = str(filepath)
+        current_hash = _file_hash(filepath)
+        if hash_cache.get(rel) == current_hash:
+            skipped += 1
+            continue
+        try:
+            operation = client.file_search_stores.upload_to_file_search_store(
+                file=str(filepath),
+                file_search_store_name=store_name,
+                config={"display_name": filepath.name},
+            )
+            while not operation.done:
+                time.sleep(2)
+                operation = client.operations.get(operation)
+            uploaded += 1
+            hash_cache[rel] = current_hash
+        except Exception as exc:
+            console.print(f"[yellow]Warning:[/yellow] Failed to upload {filepath.name}: {exc}")
+
+    # Persist hash cache
+    state = load_state()
+    state.setdefault("_hashCache", {})[store_name] = hash_cache
+    save_state(state)
+
+    console.print(f"[green]Context uploaded:[/green] {uploaded} new, {skipped} unchanged")
+
+    total_bytes = sum(f.stat().st_size for f in files)
+
+    # Track as ephemeral context store in state
+    state = load_state()
+    ctx_stores = state.setdefault("contextStores", {})
+    ctx_stores[display_name] = store_name
+    state.setdefault("fileSearchStores", {})[display_name] = store_name
+    save_state(state)
+
+    return store_name, len(files), total_bytes
+
+
+def _cleanup_context_store(client: genai.Client, store_name: str) -> None:
+    """Delete an ephemeral context store and remove it from state."""
+    try:
+        client.file_search_stores.delete(name=store_name)
+    except Exception as exc:
+        console.print(f"[yellow]Warning:[/yellow] Failed to delete context store: {exc}")
+        return
+
+    state = load_state()
+    # Remove from contextStores
+    ctx_stores = state.get("contextStores", {})
+    to_remove = [k for k, v in ctx_stores.items() if v == store_name]
+    for k in to_remove:
+        del ctx_stores[k]
+    # Remove from fileSearchStores
+    fs_stores = state.get("fileSearchStores", {})
+    to_remove = [k for k, v in fs_stores.items() if v == store_name]
+    for k in to_remove:
+        del fs_stores[k]
+    # Remove hash cache
+    hc = state.get("_hashCache", {})
+    if store_name in hc:
+        del hc[store_name]
+    save_state(state)
+    console.print(f"[green]Context store cleaned up.[/green]")
+
 
 # ---------------------------------------------------------------------------
 # start subcommand
@@ -297,9 +652,89 @@ def cmd_start(args: argparse.Namespace) -> None:
 
     # Handle file attachment: upload to a temporary store
     file_search_store_names: list[str] | None = None
+    context_store_name: str | None = None
+    context_file_count: int = 0
+    context_bytes: int = 0
 
     if args.store:
         file_search_store_names = [resolve_store_name(args.store)]
+
+    # Parse --context path and extensions (needed for both dry-run and real run)
+    context_path: Path | None = None
+    ctx_extensions: set[str] | None = None
+    if getattr(args, "context", None):
+        context_path = Path(args.context).resolve()
+        if not context_path.exists():
+            console.print(f"[red]Error:[/red] Context path not found: {context_path}")
+            sys.exit(1)
+        raw_ext = getattr(args, "context_extensions", None)
+        if raw_ext:
+            parts: list[str] = []
+            for item in raw_ext:
+                parts.extend(item.replace(",", " ").split())
+            ctx_extensions = {
+                ext if ext.startswith(".") else f".{ext}"
+                for ext in parts
+                if ext.strip()
+            }
+
+    # --dry-run: estimate costs and exit without starting research
+    if getattr(args, "dry_run", False):
+        grounded = file_search_store_names is not None or context_path is not None
+        state = load_state()
+        history = state.get("researchHistory", [])
+
+        estimate: dict = {
+            "type": "cost_estimate",
+            "disclaimer": (
+                "Estimates only. Actual costs depend on research complexity, "
+                "search depth, and API pricing changes."
+            ),
+            "currency": "USD",
+            "estimates": {},
+        }
+
+        if context_path is not None:
+            ctx_est = _estimate_context_cost(context_path, ctx_extensions)
+            estimate["estimates"]["context_upload"] = ctx_est
+
+        research_est = _estimate_research_cost(grounded, history)
+        estimate["estimates"]["research_query"] = research_est
+
+        total = research_est["estimated_cost_usd"]
+        if "context_upload" in estimate["estimates"]:
+            total += estimate["estimates"]["context_upload"]["estimated_cost_usd"]
+        estimate["estimates"]["total_estimated_cost_usd"] = round(total, 4)
+
+        # Human-readable on stderr
+        console.print("[bold]Cost Estimate[/bold] (dry run -- no research started)")
+        console.print()
+        if "context_upload" in estimate["estimates"]:
+            ctx = estimate["estimates"]["context_upload"]
+            console.print(f"  Context upload: {ctx['files']} files, "
+                          f"{ctx['total_bytes']:,} bytes, "
+                          f"~{ctx['estimated_tokens']:,} tokens, "
+                          f"~${ctx['estimated_cost_usd']:.4f}")
+        res = estimate["estimates"]["research_query"]
+        console.print(f"  Research query: ~{res['estimated_input_tokens']:,} input tokens, "
+                      f"~{res['estimated_output_tokens']:,} output tokens, "
+                      f"~${res['estimated_cost_usd']:.4f} ({res['basis']})")
+        console.print(f"  [bold]Total: ~${estimate['estimates']['total_estimated_cost_usd']:.4f}[/bold]")
+        console.print()
+        console.print("[dim]These are heuristic estimates. The Gemini API does not return token counts.[/dim]")
+
+        # Machine-readable on stdout
+        print(json.dumps(estimate, indent=2))
+        return
+
+    # Actually upload context files (not a dry run)
+    if context_path is not None:
+        context_store_name, context_file_count, context_bytes = _upload_context_files(
+            client, context_path, ctx_extensions,
+        )
+        if file_search_store_names is None:
+            file_search_store_names = []
+        file_search_store_names.append(context_store_name)
 
     if args.file:
         filepath = Path(args.file).resolve()
@@ -384,19 +819,40 @@ def cmd_start(args: argparse.Namespace) -> None:
     output_dir = getattr(args, "output_dir", None)
     grounded = file_search_store_names is not None
     adaptive_poll = not getattr(args, "no_adaptive_poll", False)
+    keep_context = getattr(args, "keep_context", False)
+
     if args.output or output_dir:
-        _poll_and_save(
-            client, interaction_id,
-            output_path=args.output,
-            output_dir=output_dir,
-            show_thoughts=not args.no_thoughts,
-            timeout=args.timeout,
-            grounded=grounded,
-            adaptive_poll=adaptive_poll,
-        )
+        try:
+            _poll_and_save(
+                client, interaction_id,
+                output_path=args.output,
+                output_dir=output_dir,
+                show_thoughts=not args.no_thoughts,
+                timeout=args.timeout,
+                grounded=grounded,
+                adaptive_poll=adaptive_poll,
+                context_files=context_file_count,
+                context_bytes=context_bytes,
+            )
+        finally:
+            # Clean up ephemeral context store unless --keep-context
+            if context_store_name and not keep_context:
+                _cleanup_context_store(client, context_store_name)
+            elif context_store_name and keep_context:
+                console.print(f"[dim]Context store kept:[/dim] {context_store_name}")
     else:
-        # Print to stdout for machine consumption
-        print(json.dumps({"id": interaction_id, "status": interaction.status}))
+        # Non-blocking mode: include context store info in JSON output
+        output: dict = {"id": interaction_id, "status": interaction.status}
+        if context_store_name:
+            output["contextStore"] = context_store_name
+            if not keep_context:
+                console.print(
+                    "[dim]Note: Context store will not be auto-cleaned in non-blocking mode.[/dim]"
+                )
+                console.print(
+                    f"[dim]Clean up manually: store.py delete {context_store_name}[/dim]"
+                )
+        print(json.dumps(output))
 
 
 def _get_poll_interval(elapsed: float) -> float:
@@ -420,6 +876,8 @@ def _poll_and_save(
     timeout: int = 1800,
     grounded: bool = False,
     adaptive_poll: bool = True,
+    context_files: int = 0,
+    context_bytes: int = 0,
 ) -> None:
     """Poll until research completes, then save the report."""
     console.print("Waiting for research to complete...")
@@ -522,11 +980,35 @@ def _poll_and_save(
         console.print("[yellow]Warning:[/yellow] No text output found in completed research.")
         return
 
+    # Compute usage metadata
+    # Count sources from the report text
+    import re as _re
+    source_urls = _re.findall(r'https?://[^\s\)>\]"\']+', report_text)
+    seen_urls: set[str] = set()
+    unique_urls: list[str] = []
+    for u in source_urls:
+        if u not in seen_urls:
+            seen_urls.add(u)
+            unique_urls.append(u)
+
+    usage = _estimate_usage_from_output(
+        report_text=report_text,
+        duration_seconds=duration,
+        grounded=grounded,
+        context_files=context_files,
+        context_bytes=context_bytes,
+        source_count=len(unique_urls),
+    )
+
     # Write to output directory if specified
     if output_dir:
-        compact = _write_output_dir(output_dir, interaction_id, interaction, report_text, duration)
+        compact = _write_output_dir(
+            output_dir, interaction_id, interaction, report_text, duration, usage,
+        )
         console.print()
         console.print(f"[green]Results saved to:[/green] {compact['output_dir']}")
+        if "estimated_cost_usd" in compact:
+            console.print(f"[dim]Estimated cost: ~${compact['estimated_cost_usd']:.4f}[/dim]")
         print(json.dumps(compact))
         return
 
@@ -535,6 +1017,8 @@ def _poll_and_save(
         Path(output_path).write_text(report_text)
         console.print()
         console.print(f"[green]Report saved to:[/green] {output_path}")
+        if usage.get("estimated_cost_usd"):
+            console.print(f"[dim]Estimated cost: ~${usage['estimated_cost_usd']:.4f}[/dim]")
 
 # ---------------------------------------------------------------------------
 # status subcommand
@@ -688,6 +1172,22 @@ def build_parser() -> argparse.ArgumentParser:
     start_p.add_argument(
         "--no-adaptive-poll", action="store_true",
         help="Disable history-adaptive polling; use fixed interval curve instead",
+    )
+    start_p.add_argument(
+        "--context", metavar="PATH",
+        help="Path to file or directory for automatic RAG-grounded research (creates ephemeral store)",
+    )
+    start_p.add_argument(
+        "--context-extensions", nargs="*", metavar="EXT",
+        help="Filter context uploads by extension (comma or space separated, e.g. py,md or .py .md)",
+    )
+    start_p.add_argument(
+        "--keep-context", action="store_true",
+        help="Keep the ephemeral context store after research completes (default: auto-delete)",
+    )
+    start_p.add_argument(
+        "--dry-run", action="store_true",
+        help="Estimate costs without starting research",
     )
 
     # status

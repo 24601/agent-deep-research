@@ -3,13 +3,30 @@ name: agent-deep-research
 description: Deep research using Google Gemini. Start background research jobs, check status, save reports. Create file search stores for RAG-grounded research. Upload documents and directories for semantic search and Q&A. Manage workspace state for research sessions.
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.2.0"
   author: "24601"
 ---
 
 # Deep Research Skill
 
 Perform deep research powered by Google Gemini's deep research agent. Upload documents to file search stores for RAG-grounded answers. Manage research sessions with persistent workspace state.
+
+## For AI Agents
+
+Get a full capabilities manifest, decision trees, and output contracts:
+
+```bash
+uv run {baseDir}/scripts/onboard.py --agent
+```
+
+See [AGENTS.md]({baseDir}/AGENTS.md) for the complete structured briefing.
+
+| Command | What It Does |
+|---------|-------------|
+| `uv run {baseDir}/scripts/research.py start "question"` | Launch deep research |
+| `uv run {baseDir}/scripts/research.py start "question" --context ./path --dry-run` | Estimate cost |
+| `uv run {baseDir}/scripts/research.py start "question" --context ./path --output report.md` | RAG-grounded research |
+| `uv run {baseDir}/scripts/store.py query <name> "question"` | Quick Q&A against uploaded docs |
 
 ## Prerequisites
 
@@ -27,6 +44,9 @@ uv run {baseDir}/scripts/research.py status <interaction-id>
 
 # Save a completed report
 uv run {baseDir}/scripts/research.py report <interaction-id> --output report.md
+
+# Research grounded in local files (auto-creates store, uploads, cleans up)
+uv run {baseDir}/scripts/research.py start "How does auth work?" --context ./src --output report.md
 ```
 
 ## Environment Variables
@@ -65,6 +85,10 @@ uv run {baseDir}/scripts/research.py start "your research question"
 | `--output-dir DIR` | Wait for completion and save structured results to a directory (see below) |
 | `--timeout SECONDS` | Maximum wait time when polling (default: 1800 = 30 minutes) |
 | `--no-adaptive-poll` | Disable history-adaptive polling; use fixed interval curve instead |
+| `--context PATH` | Auto-create ephemeral store from a file or directory for RAG-grounded research |
+| `--context-extensions EXT` | Filter context uploads by extension (e.g. `py,md` or `.py .md`) |
+| `--keep-context` | Keep the ephemeral context store after research completes (default: auto-delete) |
+| `--dry-run` | Estimate costs without starting research (prints JSON cost estimate) |
 
 The `start` subcommand is the default, so `research.py "question"` and `research.py start "question"` are equivalent.
 
@@ -129,6 +153,18 @@ When `--output` or `--output-dir` is used, the script polls the Gemini API until
 - All intervals are clamped to [2s, 120s] as a fail-safe.
 
 When history is insufficient (<3 data points) or `--no-adaptive-poll` is passed, a fixed escalating curve is used: 5s (first 30s), 10s (30s-2min), 30s (2-10min), 60s (10min+).
+
+## Cost Estimation (`--dry-run`)
+
+Preview estimated costs before running research:
+
+```bash
+uv run {baseDir}/scripts/research.py start "Analyze security architecture" --context ./src --dry-run
+```
+
+Outputs a JSON cost estimate to stdout with context upload costs, research query costs, and a total. Estimates are heuristic-based (the Gemini API does not return token counts or billing data) and clearly labeled as such.
+
+After research completes with `--output-dir`, the `metadata.json` file includes a `usage` key with post-run cost estimates based on actual output size and duration.
 
 ## File Search Store Commands
 
