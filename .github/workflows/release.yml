@@ -50,7 +50,7 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Publish to ClawHub
-        if: secrets.CLAWHUB_TOKEN != ''
+        if: ${{ secrets.CLAWHUB_TOKEN != '' }}
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
