@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-02-08
+
+### Changed
+- **Skill renamed** from `agent-deep-research` to `deep-research` in SKILL.md for better skills.sh search discoverability
+- **Description clarified**: explicitly states Gemini Interactions API usage with no Gemini CLI dependency
+- **Description enriched**: highlights automatic RAG grounding (`--context`), cost estimation (`--dry-run`), adaptive polling, and structured output
+
 ## [1.2.0] - 2026-02-08
 
 ### Added
@@ -51,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[1.2.1]: https://github.com/24601/agent-deep-research/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/24601/agent-deep-research/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/24601/agent-deep-research/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/24601/agent-deep-research/releases/tag/v1.0.0
