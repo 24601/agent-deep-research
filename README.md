@@ -201,6 +201,16 @@ Google Gemini API
 .gemini-research.json (local workspace state)
 ```
 
+## Known Issues
+
+### Store-grounded deep research may fall back to web-only mode
+
+When using `--store` with `research.py start`, the Gemini Interactions API occasionally rejects the file search store configuration. The script automatically retries without the store, falling back to web-only deep research. The retry logic works correctly, but the fallback research job may take longer than expected (potentially exceeding `--timeout`).
+
+**Workaround**: If store-grounded research times out, use `research.py status <id>` to check if the job completed on Gemini's side, then `research.py report <id>` to save results. Alternatively, query the store directly with `store.py query` for faster RAG-grounded answers that don't require the deep research agent.
+
+This is an upstream issue with the experimental Gemini Interactions API, not a bug in this skill.
+
 ## References
 
 - `references/online_docs.md` -- Links to official Google API documentation
