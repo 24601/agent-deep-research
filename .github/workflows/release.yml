@@ -50,17 +50,18 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Publish to ClawHub
-        if: env.CLAWHUB_TOKEN != ''
+        if: secrets.CLAWHUB_TOKEN != ''
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
-          # Write token to clawhub config
-          mkdir -p "$HOME/.local/share/clawhub"
-          echo "{\"registry\":\"https://clawhub.ai\",\"token\":\"$CLAWHUB_TOKEN\"}" > "$HOME/.local/share/clawhub/config.json"
+          # Write token to all paths clawhub CLI checks (Linux XDG, macOS, legacy)
+          for dir in "$HOME/.config/clawhub" "$HOME/.local/share/clawhub" "$HOME/Library/Application Support/clawhub"; do
+            mkdir -p "$dir"
+            echo "{\"registry\":\"https://clawhub.ai\",\"token\":\"$CLAWHUB_TOKEN\"}" > "$dir/config.json"
+          done
 
-          # Also try the macOS-style path (clawhub checks multiple locations)
-          mkdir -p "$HOME/Library/Application Support/clawhub"
-          echo "{\"registry\":\"https://clawhub.ai\",\"token\":\"$CLAWHUB_TOKEN\"}" > "$HOME/Library/Application Support/clawhub/config.json"
+          # Verify login works
+          npx clawhub whoami || { echo "ClawHub login failed -- check CLAWHUB_TOKEN secret"; exit 1; }
 
           # Publish
           npx clawhub publish . \
