@@ -29,7 +29,36 @@ npx skills add 24601/agent-deep-research -a gemini-cli -g -y
 
 # OpenCode
 npx skills add 24601/agent-deep-research -a opencode -g -y
+
+# Pi (badlogic/pi-mono)
+npx skills add 24601/agent-deep-research -a pi -g -y
+
+# OpenClaw / Clawdbot
+npx skills add 24601/agent-deep-research -a openclaw -g -y
 ```
+
+### Pi agent (manual install)
+
+If you prefer manual installation for [Pi](https://github.com/badlogic/pi-mono):
+
+```bash
+# Clone to Pi's global skills directory
+git clone https://github.com/24601/agent-deep-research.git ~/.pi/agent/skills/deep-research
+
+# Or add to Pi settings.json to load from an existing directory
+# ~/.pi/settings.json:
+# { "skills": ["~/.agents/skills"] }
+```
+
+Then use `/skill:deep-research` in Pi, or let Pi auto-detect it from the description.
+
+### ClawHub (OpenClaw registry)
+
+```bash
+npx clawhub install deep-research
+```
+
+Or browse at [clawhub.ai](https://clawhub.ai).
 
 ## Prerequisites
 
