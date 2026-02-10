@@ -104,6 +104,77 @@ uv run scripts/research.py start "How does auth work?" --context ./src --output 
 uv run scripts/research.py start "Analyze the Python code" --context ./src --context-extensions py,md
 ```
 
+## Use Cases
+
+This tool turns any AI agent into a domain specialist. The async, multi-step synthesis produces expert-grade output -- not search results.
+
+### Trading & Finance (OpenClaw, Pi, any agent)
+
+```bash
+# Make your agent a trading analyst
+uv run scripts/research.py start \
+  "Analyze NVDA: bull/bear thesis, valuation metrics, institutional positioning, and risk factors" \
+  --output nvda-analysis.md
+
+# Due diligence grounded in your portfolio
+uv run scripts/research.py start \
+  "Evaluate this portfolio for concentration risk and sector exposure" \
+  --context ./portfolio.csv --output due-diligence.md
+```
+
+### Competitive Intelligence
+
+```bash
+# Deep-dive a competitor using your own product docs as context
+uv run scripts/research.py start \
+  "How does Competitor X compare to our product? Where are we ahead, where are we behind?" \
+  --context ./docs --output competitive-analysis.md
+```
+
+### Software Architecture (Claude Code, Codex, Amp)
+
+```bash
+# Research trade-offs for an architecture decision
+uv run scripts/research.py start \
+  "Compare event sourcing vs CQRS vs traditional CRUD for our domain model. \
+   Which approach fits best given our codebase?" \
+  --context ./src --output adr-research.md
+
+# Security audit prep grounded in your dependencies
+uv run scripts/research.py start \
+  "Research known CVEs and threat models relevant to our dependency tree" \
+  --context ./package-lock.json --output security-research.md
+```
+
+### Design & UX Research
+
+```bash
+# Research design patterns grounded in your existing styles
+uv run scripts/research.py start \
+  "Research accessible color systems, type scales, and motion design principles \
+   for a dark-first design system" \
+  --context ./src/styles --output design-research.md
+```
+
+### Research & Analysis (any agent)
+
+```bash
+# Academic-style literature review
+uv run scripts/research.py start \
+  "Systematic review of retrieval-augmented generation architectures published in 2025-2026" \
+  --report-format comprehensive --output rag-review.md
+
+# Market sizing for a product idea
+uv run scripts/research.py start \
+  "TAM/SAM/SOM analysis for AI-powered code review tools targeting enterprise" \
+  --output market-sizing.md
+
+# Regulatory compliance research grounded in your architecture
+uv run scripts/research.py start \
+  "What SOC 2 Type II controls apply to our system architecture?" \
+  --context ./docs/architecture --output compliance-research.md
+```
+
 ## Onboarding
 
 First-time setup for humans and agents:
