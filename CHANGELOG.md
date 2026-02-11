@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-11
+
+### Added
+- **Output formats** (`--format {md,html,pdf}`) -- export research reports as HTML (dark-themed, styled) or PDF (requires weasyprint). Markdown remains default and canonical format. (Issue #6)
+- **Prompt templates** (`--prompt-template {typescript,python,general,auto}`) -- domain-specific prompt prefixes that optimize research for TypeScript/JavaScript or Python codebases. Auto-detect mode scans `--context` file extensions. (Issue #3)
+- **Edge case tests** (`tests/test_cost_estimation.py`) -- 10 tests covering empty dirs, binary-only dirs, Unicode content, mixed history, zero/negative duration, and more. Run with `uv run tests/test_cost_estimation.py`. (Issue #5)
+- **Example research reports** (`docs/examples/`) -- 3 real research outputs demonstrating the tool's capabilities: WebSocket vs SSE comparison, event sourcing patterns, WebAssembly state of the art. (Issue #4)
+
+### Changed
+- Bumped GitHub Actions: actions/setup-python v5→v6, astral-sh/setup-uv v6→v7, actions/setup-node v4→v6
+
 ## [1.2.3] - 2026-02-10
 
 ### Added
@@ -77,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[1.3.0]: https://github.com/24601/agent-deep-research/compare/v1.2.3...v1.3.0
 [1.2.3]: https://github.com/24601/agent-deep-research/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/24601/agent-deep-research/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/24601/agent-deep-research/compare/v1.2.0...v1.2.1

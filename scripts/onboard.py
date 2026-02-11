@@ -164,7 +164,7 @@ def cmd_check() -> None:
 
 CAPABILITIES_MANIFEST = {
     "skill": "deep-research",
-    "version": "1.2.3",
+    "version": "1.3.0",
     "description": "Deep research and RAG-grounded file search powered by Google Gemini",
     "commands": {
         "research": {
@@ -180,6 +180,8 @@ CAPABILITIES_MANIFEST = {
                         "--context PATH": "Auto-upload local files for RAG-grounded research",
                         "--store NAME": "Use existing file search store for grounding",
                         "--dry-run": "Preview estimated costs without starting research",
+                        "--format FMT": "md | html | pdf (default: md; pdf requires weasyprint)",
+                        "--prompt-template TPL": "typescript | python | general | auto (default: auto)",
                         "--report-format FMT": "executive_summary | detailed_report | comprehensive",
                         "--follow-up ID": "Continue a previous research session",
                         "--timeout SECS": "Max wait time when blocking (default: 1800)",

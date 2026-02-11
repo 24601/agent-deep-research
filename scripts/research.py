@@ -3,6 +3,7 @@
 # dependencies = [
 #     "google-genai>=1.0.0",
 #     "rich>=13.0.0",
+#     "markdown>=3.5",
 # ]
 # ///
 """Start, monitor, and save Gemini Deep Research interactions.
@@ -126,6 +127,74 @@ _PRICE_ESTIMATES = {
     "research_base_output_tokens": 60_000,  # typical deep research output
     "research_grounded_multiplier": 1.3,    # grounded research uses ~30% more tokens
 }
+
+# ---------------------------------------------------------------------------
+# Prompt templates -- concise prefixes for domain-specific research queries
+# ---------------------------------------------------------------------------
+
+_PROMPT_TEMPLATES: dict[str, str] = {
+    "typescript": (
+        "You are analyzing a TypeScript/JavaScript codebase. Focus on: "
+        "API patterns and endpoint definitions, type signatures and interfaces, "
+        "module structure and import/export graphs, monorepo layout and workspace "
+        "configuration, package.json dependencies and scripts, framework-specific "
+        "patterns (React components/hooks, Next.js app/pages routing, Express "
+        "middleware chains, NestJS modules/providers). Pay attention to tsconfig "
+        "paths, barrel exports, and type-level programming. Note any build tools "
+        "(webpack, vite, esbuild, turbopack) and testing frameworks in use."
+    ),
+    "python": (
+        "You are analyzing a Python codebase. Focus on: module structure and "
+        "package layout, class hierarchies and inheritance patterns, decorator "
+        "usage and metaprogramming, dependency management (pyproject.toml, "
+        "setup.py, requirements.txt, poetry.lock), framework-specific patterns "
+        "(FastAPI routes/dependencies, Django models/views/urls, Flask blueprints, "
+        "SQLAlchemy models). Pay attention to type hints, abstract base classes, "
+        "entry points, and CLI definitions. Note any build/task tools (setuptools, "
+        "hatch, pdm, uv) and testing frameworks (pytest, unittest) in use."
+    ),
+    "general": "",
+}
+
+_TS_JS_EXTENSIONS: set[str] = {".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"}
+_PYTHON_EXTENSIONS: set[str] = {".py", ".pyw", ".pyx", ".pyi"}
+
+
+_SKIP_DIRS: set[str] = {"__pycache__", "node_modules", ".git", ".tox", ".mypy_cache",
+                         ".pytest_cache", "dist", "build", ".next", ".nuxt"}
+
+
+def _detect_prompt_template(context_path: Path) -> str:
+    """Auto-detect the best prompt template by scanning source file extensions."""
+    ts_js_count = 0
+    python_count = 0
+    total = 0
+    for p in context_path.rglob("*"):
+        if not p.is_file():
+            continue
+        # Skip common build/cache directories
+        if any(part in _SKIP_DIRS for part in p.parts):
+            continue
+        ext = p.suffix.lower()
+        # Skip binary artifacts -- they are not source files
+        if ext in BINARY_EXTENSIONS:
+            continue
+        if ext in _TS_JS_EXTENSIONS:
+            ts_js_count += 1
+            total += 1
+        elif ext in _PYTHON_EXTENSIONS:
+            python_count += 1
+            total += 1
+        elif ext:
+            total += 1
+    if total == 0:
+        return "general"
+    if ts_js_count / total > 0.5:
+        return "typescript"
+    if python_count / total > 0.5:
+        return "python"
+    return "general"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -401,15 +470,21 @@ def _write_output_dir(
     report_text: str,
     duration_seconds: int | None = None,
     usage: dict | None = None,
+    fmt: str = "md",
 ) -> dict:
     """Write research results to a structured directory and return a compact summary."""
     base = Path(output_dir)
     research_dir = base / f"research-{interaction_id[:12]}"
     research_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write report.md
+    # Write report.md (always kept as canonical markdown)
     report_path = research_dir / "report.md"
     report_path.write_text(report_text)
+
+    # Write converted format file when format is not md
+    if fmt != "md":
+        converted_name = f"report.{fmt}"
+        _convert_report(report_text, fmt, str(research_dir / converted_name))
 
     # Build interaction data
     outputs_data = []
@@ -493,6 +568,101 @@ def resolve_store_name(name_or_alias: str) -> str:
     if name_or_alias in stores:
         return stores[name_or_alias]
     return name_or_alias
+
+# ---------------------------------------------------------------------------
+# Report format conversion
+# ---------------------------------------------------------------------------
+
+_HTML_TEMPLATE = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Report</title>
+<style>
+  body {{
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 860px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+  }}
+  h1, h2, h3, h4, h5, h6 {{ color: #89b4fa; }}
+  a {{ color: #89dceb; }}
+  code {{
+    background: #313244;
+    padding: 0.15em 0.3em;
+    border-radius: 4px;
+    font-family: "Fira Code", "Cascadia Code", Consolas, monospace;
+    font-size: 0.9em;
+  }}
+  pre {{
+    background: #313244;
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+  }}
+  pre code {{ background: none; padding: 0; }}
+  blockquote {{
+    border-left: 3px solid #585b70;
+    margin-left: 0;
+    padding-left: 1em;
+    color: #a6adc8;
+  }}
+  table {{
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+  }}
+  th, td {{
+    border: 1px solid #585b70;
+    padding: 0.5em 0.75em;
+    text-align: left;
+  }}
+  th {{ background: #313244; }}
+</style>
+</head>
+<body>
+{body}
+</body>
+</html>
+"""
+
+
+def _md_to_html(report_text: str) -> str:
+    """Convert markdown text to a full HTML document."""
+    import markdown as _markdown
+
+    body = _markdown.markdown(
+        report_text,
+        extensions=["fenced_code", "tables", "codehilite"],
+    )
+    return _HTML_TEMPLATE.format(body=body)
+
+
+def _convert_report(report_text: str, fmt: str, output_path: str) -> None:
+    """Write *report_text* to *output_path* in the requested format."""
+    if fmt == "md":
+        Path(output_path).write_text(report_text)
+    elif fmt == "html":
+        Path(output_path).write_text(_md_to_html(report_text))
+    elif fmt == "pdf":
+        try:
+            from weasyprint import HTML as _WeasyHTML  # type: ignore[import-untyped]
+        except ImportError:
+            print(
+                "PDF export requires weasyprint: pip install weasyprint",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        html_str = _md_to_html(report_text)
+        _WeasyHTML(string=html_str).write_pdf(output_path)
+    else:
+        Path(output_path).write_text(report_text)
+
 
 # ---------------------------------------------------------------------------
 # --context helpers
@@ -678,6 +848,20 @@ def cmd_start(args: argparse.Namespace) -> None:
                 if ext.strip()
             }
 
+    # Resolve prompt template (skip prepend for --dry-run)
+    template_choice = getattr(args, "prompt_template", "auto")
+    if template_choice == "auto" and context_path is not None and context_path.is_dir():
+        template_choice = _detect_prompt_template(context_path)
+        if template_choice != "general":
+            console.print(f"[dim]Auto-detected prompt template: {template_choice}[/dim]")
+    elif template_choice == "auto":
+        template_choice = "general"
+
+    if not getattr(args, "dry_run", False):
+        template_prefix = _PROMPT_TEMPLATES.get(template_choice, "")
+        if template_prefix:
+            query = f"[Context: {template_choice} codebase]\n{template_prefix}\n\n{query}"
+
     # --dry-run: estimate costs and exit without starting research
     if getattr(args, "dry_run", False):
         grounded = file_search_store_names is not None or context_path is not None
@@ -833,6 +1017,7 @@ def cmd_start(args: argparse.Namespace) -> None:
                 adaptive_poll=adaptive_poll,
                 context_files=context_file_count,
                 context_bytes=context_bytes,
+                fmt=getattr(args, "format", "md") or "md",
             )
         finally:
             # Clean up ephemeral context store unless --keep-context
@@ -878,6 +1063,7 @@ def _poll_and_save(
     adaptive_poll: bool = True,
     context_files: int = 0,
     context_bytes: int = 0,
+    fmt: str = "md",
 ) -> None:
     """Poll until research completes, then save the report."""
     console.print("Waiting for research to complete...")
@@ -1004,6 +1190,7 @@ def _poll_and_save(
     if output_dir:
         compact = _write_output_dir(
             output_dir, interaction_id, interaction, report_text, duration, usage,
+            fmt=fmt,
         )
         console.print()
         console.print(f"[green]Results saved to:[/green] {compact['output_dir']}")
@@ -1014,7 +1201,7 @@ def _poll_and_save(
 
     # Write to single file
     if output_path:
-        Path(output_path).write_text(report_text)
+        _convert_report(report_text, fmt, output_path)
         console.print()
         console.print(f"[green]Report saved to:[/green] {output_path}")
         if usage.get("estimated_cost_usd"):
@@ -1107,15 +1294,18 @@ def cmd_report(args: argparse.Namespace) -> None:
 
     report = "\n".join(sections)
 
+    fmt = getattr(args, "format", "md") or "md"
     output_dir = getattr(args, "output_dir", None)
     if output_dir:
-        compact = _write_output_dir(output_dir, interaction_id, interaction, report)
+        compact = _write_output_dir(
+            output_dir, interaction_id, interaction, report, fmt=fmt,
+        )
         console.print(f"[green]Results saved to:[/green] {compact['output_dir']}")
         print(json.dumps(compact))
         return
 
-    output_path = args.output or f"research-report-{interaction_id[:8]}.md"
-    Path(output_path).write_text(report)
+    output_path = args.output or f"research-report-{interaction_id[:8]}.{fmt}"
+    _convert_report(report, fmt, output_path)
     console.print(f"[green]Report saved to:[/green] {output_path}")
 
 # ---------------------------------------------------------------------------
@@ -1189,6 +1379,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true",
         help="Estimate costs without starting research",
     )
+    start_p.add_argument(
+        "--format", choices=["md", "html", "pdf"], default="md",
+        help="Output format for the report (default: md)",
+    )
+    start_p.add_argument(
+        "--prompt-template",
+        choices=["typescript", "python", "general", "auto"],
+        default="auto",
+        help="Prompt template to prepend for domain-specific research (default: auto-detect from --context)",
+    )
 
     # status
     status_p = sub.add_parser("status", help="Check research interaction status")
@@ -1201,6 +1401,10 @@ def build_parser() -> argparse.ArgumentParser:
     report_p.add_argument(
         "--output-dir", metavar="DIR",
         help="Save structured results to this directory",
+    )
+    report_p.add_argument(
+        "--format", choices=["md", "html", "pdf"], default="md",
+        help="Output format for the report (default: md)",
     )
 
     return parser

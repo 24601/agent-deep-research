@@ -220,6 +220,36 @@ Key flags:
 | `--context-extensions EXT` | Filter context uploads by extension (e.g. `py,md`) |
 | `--keep-context` | Keep the ephemeral context store after research completes |
 | `--dry-run` | Estimate costs without starting research |
+| `--format {md,html,pdf}` | Output format (default: md; pdf requires weasyprint) |
+| `--prompt-template {typescript,python,general,auto}` | Domain-specific prompt prefix (default: auto-detect from context) |
+
+### Output Formats
+
+Export research reports as Markdown, HTML, or PDF:
+
+```bash
+uv run scripts/research.py start "Analyze the API" --format html --output report.html
+uv run scripts/research.py start "Architecture review" --format pdf --output report.pdf
+```
+
+HTML includes a dark-themed stylesheet. PDF requires `pip install weasyprint` (graceful error if missing). Markdown is always the canonical format; other formats are converted from it.
+
+### Prompt Templates
+
+Auto-detect or specify domain-specific prompt optimization:
+
+```bash
+# Auto-detect from file extensions in --context path
+uv run scripts/research.py start "How does auth work?" --context ./src --prompt-template auto
+
+# Explicit: optimize for TypeScript/JavaScript codebases
+uv run scripts/research.py start "Analyze the API layer" --context ./src --prompt-template typescript
+
+# Explicit: optimize for Python codebases
+uv run scripts/research.py start "Review the data pipeline" --context ./src --prompt-template python
+```
+
+Templates instruct the research model to focus on domain-specific patterns (type signatures, module structure, framework conventions, etc.).
 
 ### Cost Estimation
 

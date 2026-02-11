@@ -3,7 +3,7 @@ name: deep-research
 description: Async deep research via Gemini Interactions API (no Gemini CLI dependency). RAG-ground queries on local files (--context), preview costs (--dry-run), structured JSON output, adaptive polling. Universal skill for 30+ AI agents including Claude Code, Amp, Codex, and Gemini CLI.
 license: MIT
 metadata:
-  version: "1.2.3"
+  version: "1.3.0"
   author: "24601"
 ---
 
@@ -47,6 +47,12 @@ uv run {baseDir}/scripts/research.py report <interaction-id> --output report.md
 
 # Research grounded in local files (auto-creates store, uploads, cleans up)
 uv run {baseDir}/scripts/research.py start "How does auth work?" --context ./src --output report.md
+
+# Export as HTML or PDF
+uv run {baseDir}/scripts/research.py start "Analyze the API" --context ./src --format html --output report.html
+
+# Auto-detect prompt template based on context files
+uv run {baseDir}/scripts/research.py start "How does auth work?" --context ./src --prompt-template auto --output report.md
 ```
 
 ## Environment Variables
@@ -89,6 +95,8 @@ uv run {baseDir}/scripts/research.py start "your research question"
 | `--context-extensions EXT` | Filter context uploads by extension (e.g. `py,md` or `.py .md`) |
 | `--keep-context` | Keep the ephemeral context store after research completes (default: auto-delete) |
 | `--dry-run` | Estimate costs without starting research (prints JSON cost estimate) |
+| `--format {md,html,pdf}` | Output format for the report (default: md; pdf requires weasyprint) |
+| `--prompt-template {typescript,python,general,auto}` | Domain-specific prompt prefix; auto detects from context file extensions |
 
 The `start` subcommand is the default, so `research.py "question"` and `research.py start "question"` are equivalent.
 
