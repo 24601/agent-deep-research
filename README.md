@@ -79,8 +79,8 @@ Optional model configuration:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI_DEEP_RESEARCH_MODEL` | Model for file search queries | `models/gemini-flash-latest` |
-| `GEMINI_MODEL` | Fallback model name | `models/gemini-flash-latest` |
+| `GEMINI_DEEP_RESEARCH_MODEL` | Model for file search queries | `gemini-3.1-pro-preview` |
+| `GEMINI_MODEL` | Fallback model name | `gemini-3.1-pro-preview` |
 | `GEMINI_DEEP_RESEARCH_AGENT` | Deep research agent identifier | `deep-research-pro-preview-12-2025` |
 
 ## Quick Start

@@ -3,7 +3,7 @@ name: deep-research
 description: Async deep research via Gemini Interactions API (no Gemini CLI dependency). RAG-ground queries on local files (--context), preview costs (--dry-run), structured JSON output, adaptive polling. Universal skill for 30+ AI agents including Claude Code, Amp, Codex, and Gemini CLI.
 license: MIT
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
   author: "24601"
 ---
 
@@ -69,8 +69,8 @@ Optional model configuration:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI_DEEP_RESEARCH_MODEL` | Model for file search queries | `models/gemini-flash-latest` |
-| `GEMINI_MODEL` | Fallback model name | `models/gemini-flash-latest` |
+| `GEMINI_DEEP_RESEARCH_MODEL` | Model for file search queries | `gemini-3.1-pro-preview` |
+| `GEMINI_MODEL` | Fallback model name | `gemini-3.1-pro-preview` |
 | `GEMINI_DEEP_RESEARCH_AGENT` | Deep research agent identifier | `deep-research-pro-preview-12-2025` |
 
 ## Research Commands

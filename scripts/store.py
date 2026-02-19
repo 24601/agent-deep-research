@@ -68,7 +68,7 @@ def get_default_model() -> str:
     """Return the model to use for file search queries."""
     return os.environ.get(
         "GEMINI_DEEP_RESEARCH_MODEL",
-        os.environ.get("GEMINI_MODEL", "models/gemini-flash-latest"),
+        os.environ.get("GEMINI_MODEL", "gemini-3.1-pro-preview"),
     )
 
 # ---------------------------------------------------------------------------
