@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-02-21
+
+### Security
+- **SKILL.md frontmatter**: declared all requirements (`compatibility`, `allowed-tools`, `metadata.required_env`, `metadata.required_binaries`, `metadata.primary_credential`, `metadata.file_upload_behavior`, `metadata.network_access`, `metadata.no_obfuscation`, `metadata.no_telemetry`) to resolve OpenClaw "suspicious" classification caused by metadata mismatch
+- **Security & Transparency section** added to SKILL.md body covering credentials handling, file upload scope, non-interactive mode risks, and no-obfuscation guarantee
+
 ## [2.0.0] - 2026-02-21
 
 ### Added
@@ -108,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.0.1]: https://github.com/24601/agent-deep-research/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/24601/agent-deep-research/compare/v1.3.1...v2.0.0
 [1.3.1]: https://github.com/24601/agent-deep-research/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/24601/agent-deep-research/compare/v1.2.3...v1.3.0
