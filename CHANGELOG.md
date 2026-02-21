@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3] - 2026-02-21
+
+### Security
+- **Complete env var declaration**: added all 6 env vars the code reads to `clawdis.requires.env` (was only declaring 3 of 6). Added optional model config vars: `GEMINI_DEEP_RESEARCH_AGENT`, `GEMINI_DEEP_RESEARCH_MODEL`, `GEMINI_MODEL`
+- **All 3 API key vars** added to `clawdbot.config.requiredEnv` (was only listing 1)
+- **Compatibility field** updated to mention optional model config env vars
+
 ## [2.0.2] - 2026-02-21
 
 ### Security
@@ -119,6 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.0.3]: https://github.com/24601/agent-deep-research/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/24601/agent-deep-research/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/24601/agent-deep-research/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/24601/agent-deep-research/compare/v1.3.1...v2.0.0
