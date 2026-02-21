@@ -7,14 +7,27 @@ allowed-tools: Bash(uv:*) Bash(python3:*) Read
 metadata:
   version: "2.0.1"
   author: "24601"
-  required_env: "GOOGLE_API_KEY or GEMINI_API_KEY or GEMINI_DEEP_RESEARCH_API_KEY"
-  required_binaries: "uv"
-  primary_credential: "Google/Gemini API Key"
-  file_upload_behavior: "--context flag uploads local files to Google ephemeral file search stores; auto-deleted after research unless --keep-context is set; respects .gitignore patterns; rejects binary files"
-  network_access: "Google Gemini API (generativelanguage.googleapis.com)"
-  no_obfuscation: "true"
-  no_telemetry: "true"
-  source_auditable: "All code is readable Python with PEP 723 inline metadata"
+  clawdis:
+    primaryEnv: "GOOGLE_API_KEY"
+    homepage: "https://github.com/24601/agent-deep-research"
+    requires:
+      bins:
+        - "uv"
+      env:
+        - "GOOGLE_API_KEY"
+        - "GEMINI_API_KEY"
+        - "GEMINI_DEEP_RESEARCH_API_KEY"
+    install:
+      - kind: "uv"
+        label: "uv (Python package runner)"
+        package: "uv"
+  clawdbot:
+    emoji: "🔬"
+    category: "research"
+    config:
+      requiredEnv:
+        - "GOOGLE_API_KEY"
+      example: "export GOOGLE_API_KEY='your-key-from-aistudio.google.com'"
 ---
 
 # Deep Research Skill
