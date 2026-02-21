@@ -164,7 +164,7 @@ def cmd_check() -> None:
 
 CAPABILITIES_MANIFEST = {
     "skill": "deep-research",
-    "version": "1.3.1",
+    "version": "2.0.0",
     "description": "Deep research and RAG-grounded file search powered by Google Gemini",
     "commands": {
         "research": {
@@ -184,6 +184,10 @@ CAPABILITIES_MANIFEST = {
                         "--prompt-template TPL": "typescript | python | general | auto (default: auto)",
                         "--report-format FMT": "executive_summary | detailed_report | comprehensive",
                         "--follow-up ID": "Continue a previous research session",
+                        "--depth LVL": "quick | standard | deep (default: standard)",
+                        "--max-cost USD": "Abort if estimated cost exceeds limit",
+                        "--input-file PATH": "Read query from file",
+                        "--no-cache": "Skip research cache, force fresh run",
                         "--timeout SECS": "Max wait time when blocking (default: 1800)",
                     },
                     "stdout_contract": {

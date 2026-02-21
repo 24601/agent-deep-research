@@ -3,7 +3,7 @@ name: deep-research
 description: Async deep research via Gemini Interactions API (no Gemini CLI dependency). RAG-ground queries on local files (--context), preview costs (--dry-run), structured JSON output, adaptive polling. Universal skill for 30+ AI agents including Claude Code, Amp, Codex, and Gemini CLI.
 license: MIT
 metadata:
-  version: "1.3.1"
+  version: "2.0.0"
   author: "24601"
 ---
 
@@ -97,6 +97,10 @@ uv run {baseDir}/scripts/research.py start "your research question"
 | `--dry-run` | Estimate costs without starting research (prints JSON cost estimate) |
 | `--format {md,html,pdf}` | Output format for the report (default: md; pdf requires weasyprint) |
 | `--prompt-template {typescript,python,general,auto}` | Domain-specific prompt prefix; auto detects from context file extensions |
+| `--depth {quick,standard,deep}` | Research depth: quick (~2-5min), standard (~5-15min), deep (~15-45min) |
+| `--max-cost USD` | Abort if estimated cost exceeds this limit (e.g. `--max-cost 3.00`) |
+| `--input-file PATH` | Read the research query from a file instead of positional argument |
+| `--no-cache` | Skip research cache and force a fresh run |
 
 The `start` subcommand is the default, so `research.py "question"` and `research.py start "question"` are equivalent.
 

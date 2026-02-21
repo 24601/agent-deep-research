@@ -1,6 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
+#     "google-genai>=1.0.0",
 #     "rich>=13.0.0",
 # ]
 # ///
@@ -13,7 +14,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
+import time
 from pathlib import Path
 
 from rich.console import Console
@@ -192,6 +196,99 @@ def cmd_clear(_args: argparse.Namespace) -> None:
     path.unlink()
     console.print("[green]Workspace state cleared.[/green]")
 
+
+def cmd_gc(_args: argparse.Namespace) -> None:
+    """Clean up orphaned context stores older than 24 hours."""
+    state = load_state()
+    ctx_stores: dict[str, str] = state.get("contextStores", {})
+
+    if not ctx_stores:
+        console.print("[dim]No context stores tracked.[/dim]")
+        return
+
+    now = time.time()
+    stale: list[tuple[str, str]] = []  # (display_name, resource_name)
+
+    for display_name, resource_name in ctx_stores.items():
+        # Context store names follow the pattern: context-<hash>-<unix_timestamp>
+        match = re.search(r"-(\d{10,})$", display_name)
+        if not match:
+            continue
+        created_ts = int(match.group(1))
+        age_hours = (now - created_ts) / 3600
+        if age_hours > 24:
+            stale.append((display_name, resource_name))
+
+    if not stale:
+        console.print("[dim]No context stores older than 24h found.[/dim]")
+        return
+
+    # Show what would be cleaned up
+    table = Table(title="Stale Context Stores (>24h old)")
+    table.add_column("Display Name")
+    table.add_column("Resource Name")
+    table.add_column("Age")
+    for display_name, resource_name in stale:
+        match = re.search(r"-(\d{10,})$", display_name)
+        if match:
+            age_h = (now - int(match.group(1))) / 3600
+            age_str = f"{age_h:.1f}h"
+        else:
+            age_str = "unknown"
+        table.add_row(display_name, resource_name, age_str)
+    console.print(table)
+
+    # Confirm deletion
+    if not _args.yes:
+        if sys.stdin.isatty():
+            console.print(f"\nThis will delete {len(stale)} context store(s) via the Gemini API.")
+            try:
+                answer = input("Continue? [y/N] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                sys.exit(1)
+            if answer not in ("y", "yes"):
+                console.print("[dim]Aborted.[/dim]")
+                return
+        # Non-TTY: proceed without prompting
+
+    # Lazy-import the API client only when we actually need to delete
+    from google import genai
+
+    api_key: str | None = None
+    for var in ("GEMINI_DEEP_RESEARCH_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY"):
+        api_key = os.environ.get(var)
+        if api_key:
+            break
+    if not api_key:
+        console.print("[red]Error:[/red] No API key found for store deletion.")
+        console.print("Set one of: GEMINI_DEEP_RESEARCH_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY")
+        sys.exit(1)
+
+    client = genai.Client(api_key=api_key)
+    deleted = 0
+    for display_name, resource_name in stale:
+        try:
+            client.file_search_stores.delete(name=resource_name)
+            deleted += 1
+        except Exception as exc:
+            console.print(f"[yellow]Warning:[/yellow] Failed to delete {display_name}: {exc}")
+            # Still remove from local state to prevent permanent failure loop
+            # (e.g., store was already deleted in cloud console)
+
+        # Remove from state regardless of API success/failure
+        state = load_state()
+        ctx = state.get("contextStores", {})
+        ctx.pop(display_name, None)
+        fs = state.get("fileSearchStores", {})
+        fs.pop(display_name, None)
+        hc = state.get("_hashCache", {})
+        hc.pop(resource_name, None)
+        save_state(state)
+
+    console.print(f"[green]Cleaned up {deleted}/{len(stale)} context store(s).[/green]")
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -214,6 +311,9 @@ def build_parser() -> argparse.ArgumentParser:
     clear_p = sub.add_parser("clear", help="Reset workspace state")
     clear_p.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompt")
 
+    gc_p = sub.add_parser("gc", help="Clean up orphaned context stores (>24h old)")
+    gc_p.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompt")
+
     return parser
 
 
@@ -226,6 +326,7 @@ def main(argv: list[str] | None = None) -> None:
         "research": cmd_research,
         "stores": cmd_stores,
         "clear": cmd_clear,
+        "gc": cmd_gc,
         None: cmd_show,  # default
     }
 

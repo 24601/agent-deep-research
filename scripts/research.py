@@ -156,6 +156,30 @@ _PROMPT_TEMPLATES: dict[str, str] = {
     "general": "",
 }
 
+_DEPTH_CONFIGS: dict[str, dict] = {
+    "quick": {
+        "prefix": (
+            "[Research Depth: Quick]\n"
+            "Provide a brief, focused answer in 2-3 paragraphs. "
+            "Prioritize speed and directness over exhaustive coverage."
+        ),
+        "default_timeout": 300,
+    },
+    "standard": {
+        "prefix": "",
+        "default_timeout": 1800,
+    },
+    "deep": {
+        "prefix": (
+            "[Research Depth: Comprehensive]\n"
+            "Conduct exhaustive, multi-angle research. Explore contradictions, "
+            "provide detailed analysis with extensive citations, consider "
+            "counterarguments, and target 3000+ words."
+        ),
+        "default_timeout": 3600,
+    },
+}
+
 _TS_JS_EXTENSIONS: set[str] = {".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"}
 _PYTHON_EXTENSIONS: set[str] = {".py", ".pyw", ".pyx", ".pyi"}
 
@@ -463,6 +487,34 @@ def _get_adaptive_poll_interval(
     return max(2.0, min(120.0, interval))
 
 
+def _estimate_progress(elapsed: float, history: list[dict], grounded: bool) -> str:
+    """Return a human-readable progress estimate based on historical data."""
+    durations = sorted(
+        entry["duration_seconds"]
+        for entry in history
+        if entry.get("grounded", False) == grounded
+        and isinstance(entry.get("duration_seconds"), (int, float))
+    )
+    if len(durations) < 3:
+        return f"{int(elapsed)}s elapsed"
+
+    p25 = _percentile(durations, 25)
+    p50 = _percentile(durations, 50)
+    p75 = _percentile(durations, 75)
+
+    if elapsed < max(1.0, p25):
+        pct = int((elapsed / max(1.0, p25)) * 25)
+        return f"~{pct}% (early stage, {int(elapsed)}s)"
+    elif elapsed <= p75:
+        # Linear interpolation between p25 (25%) and p75 (75%)
+        span = max(1.0, p75 - p25)
+        pct = 25 + int(((elapsed - p25) / span) * 50)
+        pct = min(pct, 90)
+        return f"~{pct}% ({int(elapsed)}s, median {int(p50)}s)"
+    else:
+        return f"~90%+ (finishing up, {int(elapsed)}s)"
+
+
 def _write_output_dir(
     output_dir: str,
     interaction_id: str,
@@ -568,6 +620,60 @@ def resolve_store_name(name_or_alias: str) -> str:
     if name_or_alias in stores:
         return stores[name_or_alias]
     return name_or_alias
+
+
+def _get_cache_key(
+    query: str, grounded: bool, depth: str,
+    store_names: list[str] | None = None,
+    context_path: str | None = None,
+) -> str:
+    """Compute a content-addressable cache key for a research query.
+
+    Includes store names and context path to prevent cache collisions
+    when the same query is grounded against different data sources.
+    """
+    parts = [query, f"grounded={grounded}", f"depth={depth}"]
+    if store_names:
+        parts.append(f"stores={','.join(sorted(store_names))}")
+    if context_path:
+        parts.append(f"context={context_path}")
+    content = "|".join(parts)
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+
+def _check_research_cache(cache_key: str) -> dict | None:
+    """Check if a cached result exists for this query. Returns cached entry or None."""
+    state = load_state()
+    cache = state.get("researchCache", {})
+    entry = cache.get(cache_key)
+    if entry is None:
+        return None
+    # Prune entries older than 7 days
+    import time as _time
+    ts = entry.get("timestamp", 0)
+    if _time.time() - ts > 7 * 86400:
+        del cache[cache_key]
+        save_state(state)
+        return None
+    return entry
+
+
+def _save_research_cache(cache_key: str, interaction_id: str, grounded: bool, depth: str) -> None:
+    """Save a completed research result to the cache."""
+    state = load_state()
+    cache = state.setdefault("researchCache", {})
+    cache[cache_key] = {
+        "interaction_id": interaction_id,
+        "grounded": grounded,
+        "depth": depth,
+        "timestamp": time.time(),
+    }
+    # Prune old entries (>7 days)
+    cutoff = time.time() - 7 * 86400
+    cache = {k: v for k, v in cache.items() if v.get("timestamp", 0) > cutoff}
+    state["researchCache"] = cache
+    save_state(state)
+
 
 # ---------------------------------------------------------------------------
 # Report format conversion
@@ -788,7 +894,19 @@ def _cleanup_context_store(client: genai.Client, store_name: str) -> None:
 def cmd_start(args: argparse.Namespace) -> None:
     """Start a new deep research interaction."""
     client = get_client()
-    query: str = args.query
+    query: str = args.query or ""
+    if args.input_file:
+        if query:
+            console.print("[red]Error:[/red] Cannot use both a positional query and --input-file. Use one or the other.")
+            sys.exit(1)
+        input_path = Path(args.input_file)
+        if not input_path.exists():
+            console.print(f"[red]Error:[/red] Input file not found: {input_path}")
+            sys.exit(1)
+        query = input_path.read_text().strip()
+    if not query:
+        console.print("[red]Error:[/red] No query provided. Use a positional argument or --input-file.")
+        sys.exit(1)
 
     # Prepend report format if specified
     if args.report_format:
@@ -799,6 +917,14 @@ def cmd_start(args: argparse.Namespace) -> None:
         }
         label = format_map.get(args.report_format, args.report_format)
         query = f"[Report Format: {label}]\n\n{query}"
+
+    # Apply depth configuration
+    depth_config = _DEPTH_CONFIGS[args.depth]
+    if depth_config["prefix"]:
+        query = f"{depth_config['prefix']}\n\n{query}"
+    # Use depth's default timeout if the user didn't explicitly set --timeout
+    if args.timeout == 1800:  # matches argparse default
+        args.timeout = depth_config["default_timeout"]
 
     # Handle follow-up: prepend context from previous interaction
     if args.follow_up:
@@ -814,7 +940,9 @@ def cmd_start(args: argparse.Namespace) -> None:
                 if prev_text:
                     # Sanitize: wrap in data delimiters to mitigate prompt injection
                     # from potentially compromised previous output
-                    sanitized = prev_text[:4000].replace("```", "'''")
+                    sanitized = (prev_text[:4000]
+                                  .replace("```", "'''")
+                                  .replace("</previous_findings>", ""))
                     query = (
                         f"[Follow-up to previous research]\n\n"
                         f"The following is DATA from a previous research report "
@@ -867,6 +995,28 @@ def cmd_start(args: argparse.Namespace) -> None:
         if template_prefix:
             query = f"[Context: {template_choice} codebase]\n{template_prefix}\n\n{query}"
 
+    # --cache check: skip research if an identical query was already completed
+    grounded_for_cache = file_search_store_names is not None or context_path is not None
+    depth = getattr(args, "depth", "standard")
+    cache_key = _get_cache_key(
+        query, grounded_for_cache, depth,
+        store_names=file_search_store_names,
+        context_path=str(context_path) if context_path else None,
+    )
+    if not getattr(args, "no_cache", False) and not getattr(args, "dry_run", False):
+        cached = _check_research_cache(cache_key)
+        if cached is not None:
+            cached_id = cached["interaction_id"]
+            console.print(
+                f"[green]Using cached result[/green] (ID: [bold]{cached_id}[/bold], "
+                f"depth={cached.get('depth', 'standard')})"
+            )
+            console.print(
+                f"Retrieve the report with: [bold]research.py report {cached_id}[/bold]"
+            )
+            print(json.dumps({"id": cached_id, "status": "cached", "cache_key": cache_key}))
+            return
+
     # --dry-run: estimate costs and exit without starting research
     if getattr(args, "dry_run", False):
         grounded = file_search_store_names is not None or context_path is not None
@@ -915,6 +1065,27 @@ def cmd_start(args: argparse.Namespace) -> None:
         # Machine-readable on stdout
         print(json.dumps(estimate, indent=2))
         return
+
+    # --max-cost guard: estimate costs and abort if over budget
+    if getattr(args, "max_cost", None) is not None:
+        grounded_check = file_search_store_names is not None or context_path is not None
+        state = load_state()
+        history = state.get("researchHistory", [])
+
+        est_total = 0.0
+        if context_path is not None:
+            ctx_est = _estimate_context_cost(context_path, ctx_extensions)
+            est_total += ctx_est["estimated_cost_usd"]
+        research_est = _estimate_research_cost(grounded_check, history)
+        est_total += research_est["estimated_cost_usd"]
+
+        if est_total > args.max_cost:
+            console.print(f"[red]Error:[/red] Estimated cost ~${est_total:.2f} exceeds "
+                          f"--max-cost limit of ${args.max_cost:.2f}")
+            console.print("Use --dry-run for detailed breakdown, or increase --max-cost.")
+            sys.exit(1)
+        else:
+            console.print(f"[dim]Cost check: ~${est_total:.2f} within ${args.max_cost:.2f} limit[/dim]")
 
     # Actually upload context files (not a dry run)
     if context_path is not None:
@@ -1024,6 +1195,8 @@ def cmd_start(args: argparse.Namespace) -> None:
                 context_bytes=context_bytes,
                 fmt=getattr(args, "format", "md") or "md",
             )
+            # Save to research cache after successful completion
+            _save_research_cache(cache_key, interaction_id, grounded, depth)
         finally:
             # Clean up ephemeral context store unless --keep-context
             if context_store_name and not keep_context:
@@ -1148,6 +1321,11 @@ def _poll_and_save(
                 if use_adaptive
                 else _get_poll_interval(elapsed)
             )
+            if use_adaptive:
+                progress = _estimate_progress(elapsed, history, grounded)
+                live.update(Spinner("dots", text=f"Researching... {progress}"))
+            else:
+                live.update(Spinner("dots", text=f"Researching... {int(elapsed)}s elapsed"))
             time.sleep(interval)
 
     duration = int(time.monotonic() - start_time)
@@ -1326,7 +1504,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     # start (default)
     start_p = sub.add_parser("start", help="Start a new deep research interaction (default)")
-    start_p.add_argument("query", help="The research query or instructions")
+    start_p.add_argument("query", nargs="?", help="The research query or instructions")
+    start_p.add_argument(
+        "--input-file", metavar="PATH",
+        help="Read the research query from a file instead of the positional argument",
+    )
     start_p.add_argument(
         "--file", metavar="PATH",
         help="Attach a file to the research (inlined or uploaded to store)",
@@ -1393,6 +1575,18 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["typescript", "python", "general", "auto"],
         default="auto",
         help="Prompt template to prepend for domain-specific research (default: auto-detect from --context)",
+    )
+    start_p.add_argument(
+        "--depth", choices=["quick", "standard", "deep"], default="standard",
+        help="Research depth: quick (~2-5min), standard (~5-15min), deep (~15-45min)",
+    )
+    start_p.add_argument(
+        "--no-cache", action="store_true",
+        help="Skip research cache and force a fresh research run",
+    )
+    start_p.add_argument(
+        "--max-cost", type=float, metavar="USD",
+        help="Maximum estimated cost in USD; abort if estimate exceeds this (e.g. --max-cost 3.00)",
     )
 
     # status
