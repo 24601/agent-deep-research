@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-02-21
+
+### Security
+- **ClawHub registry metadata**: added `metadata.clawdis` and `metadata.clawdbot` structured fields that the OpenClaw scanner reads for registry-level declarations: `requires.bins` (uv), `requires.env` (all 3 API key vars), `primaryEnv` (GOOGLE_API_KEY), `homepage` (GitHub URL), `install` spec (uv), and `clawdbot.config.requiredEnv`. Fixes "no required env vars", "no required binaries", "Source: unknown", and "instruction-only" scanner findings.
+
 ## [2.0.1] - 2026-02-21
 
 ### Security
@@ -114,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.0.2]: https://github.com/24601/agent-deep-research/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/24601/agent-deep-research/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/24601/agent-deep-research/compare/v1.3.1...v2.0.0
 [1.3.1]: https://github.com/24601/agent-deep-research/compare/v1.3.0...v1.3.1

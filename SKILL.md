@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires uv (https://docs.astral.sh/uv/) and one of GOOGLE_API_KEY, GEMINI_API_KEY, or GEMINI_DEEP_RESEARCH_API_KEY. Network access to the Google Gemini API. The --context flag uploads local files to Google's ephemeral file search stores (auto-deleted after research completes unless --keep-context is used).
 allowed-tools: Bash(uv:*) Bash(python3:*) Read
 metadata:
-  version: "2.0.1"
+  version: "2.0.2"
   author: "24601"
   clawdis:
     primaryEnv: "GOOGLE_API_KEY"
