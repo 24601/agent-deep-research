@@ -30,6 +30,9 @@ research-output/
 # Launch drafts (local only, not for distribution)
 docs/launch/
 
+# Competitive analysis (local only)
+docs/competitive-analysis.md
+
 # Letta conversation cache
 .letta/
 

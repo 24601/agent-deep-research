@@ -5,7 +5,7 @@ Thanks for your interest in contributing. This document covers the development w
 ## Prerequisites
 
 - Python 3.10+
-- [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- [uv](https://docs.astral.sh/uv/) (see [install docs](https://docs.astral.sh/uv/getting-started/installation/))
 - A Google API key (set `GOOGLE_API_KEY` or `GEMINI_API_KEY`)
 
 ## Development Setup

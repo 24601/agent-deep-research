@@ -139,7 +139,7 @@ def cmd_check() -> None:
     else:
         table.add_row(
             "uv", "[red]MISSING[/red]",
-            "Install: curl -LsSf https://astral.sh/uv/install.sh | sh",
+            "Install: https://docs.astral.sh/uv/getting-started/installation/",
         )
 
     # State file
@@ -361,7 +361,7 @@ def cmd_interactive() -> None:
         console.print("  [green]Found[/green] uv on PATH")
     else:
         console.print("  [red]Not found.[/red] Install with:")
-        console.print("    curl -LsSf https://astral.sh/uv/install.sh | sh")
+        console.print("    See: https://docs.astral.sh/uv/getting-started/installation/")
     console.print()
 
     # Step 3: Preferences

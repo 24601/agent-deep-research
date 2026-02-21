@@ -63,7 +63,7 @@ Or browse at [clawhub.ai/skills/agent-deep-research](https://clawhub.ai/skills/a
 ## Prerequisites
 
 - A Google API key (see [Configuration](#configuration))
-- [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- [uv](https://docs.astral.sh/uv/) (see [install docs](https://docs.astral.sh/uv/getting-started/installation/))
 
 ## Configuration
 

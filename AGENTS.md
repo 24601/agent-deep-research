@@ -107,7 +107,7 @@ uv run {baseDir}/scripts/research.py start "Dive deeper into finding #3" \
 | Requirement | How to Check | How to Fix |
 |-------------|-------------|------------|
 | API key | `uv run {baseDir}/scripts/onboard.py --check` | `export GOOGLE_API_KEY='...'` |
-| uv runtime | `which uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| uv runtime | `which uv` | [uv install docs](https://docs.astral.sh/uv/getting-started/installation/) |
 
 API key is checked from these env vars (first found wins):
 1. `GEMINI_DEEP_RESEARCH_API_KEY`

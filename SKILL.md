@@ -31,7 +31,7 @@ See [AGENTS.md]({baseDir}/AGENTS.md) for the complete structured briefing.
 ## Prerequisites
 
 - A Google API key (`GOOGLE_API_KEY` or `GEMINI_API_KEY` environment variable)
-- [uv](https://docs.astral.sh/uv/) installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- [uv](https://docs.astral.sh/uv/) installed (see [uv install docs](https://docs.astral.sh/uv/getting-started/installation/))
 
 ## Quick Start
 
