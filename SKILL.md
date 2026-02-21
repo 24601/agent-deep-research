@@ -2,9 +2,19 @@
 name: deep-research
 description: Async deep research via Gemini Interactions API (no Gemini CLI dependency). RAG-ground queries on local files (--context), preview costs (--dry-run), structured JSON output, adaptive polling. Universal skill for 30+ AI agents including Claude Code, Amp, Codex, and Gemini CLI.
 license: MIT
+compatibility: Requires uv (https://docs.astral.sh/uv/) and one of GOOGLE_API_KEY, GEMINI_API_KEY, or GEMINI_DEEP_RESEARCH_API_KEY. Network access to the Google Gemini API. The --context flag uploads local files to Google's ephemeral file search stores (auto-deleted after research completes unless --keep-context is used).
+allowed-tools: Bash(uv:*) Bash(python3:*) Read
 metadata:
   version: "2.0.0"
   author: "24601"
+  required_env: "GOOGLE_API_KEY or GEMINI_API_KEY or GEMINI_DEEP_RESEARCH_API_KEY"
+  required_binaries: "uv"
+  primary_credential: "Google/Gemini API Key"
+  file_upload_behavior: "--context flag uploads local files to Google ephemeral file search stores; auto-deleted after research unless --keep-context is set; respects .gitignore patterns; rejects binary files"
+  network_access: "Google Gemini API (generativelanguage.googleapis.com)"
+  no_obfuscation: "true"
+  no_telemetry: "true"
+  source_auditable: "All code is readable Python with PEP 723 inline metadata"
 ---
 
 # Deep Research Skill
@@ -27,6 +37,18 @@ See [AGENTS.md]({baseDir}/AGENTS.md) for the complete structured briefing.
 | `uv run {baseDir}/scripts/research.py start "question" --context ./path --dry-run` | Estimate cost |
 | `uv run {baseDir}/scripts/research.py start "question" --context ./path --output report.md` | RAG-grounded research |
 | `uv run {baseDir}/scripts/store.py query <name> "question"` | Quick Q&A against uploaded docs |
+
+## Security & Transparency
+
+**Credentials**: This skill requires a Google/Gemini API key (one of `GOOGLE_API_KEY`, `GEMINI_API_KEY`, or `GEMINI_DEEP_RESEARCH_API_KEY`). The key is read from environment variables and passed to the `google-genai` SDK. It is never logged, written to files, or transmitted anywhere other than the Google Gemini API.
+
+**File uploads**: The `--context` flag uploads local files to Google's ephemeral file search stores for RAG grounding. Files are filtered by MIME type (binary files are rejected), and the ephemeral store is auto-deleted after research completes unless `--keep-context` is specified. Use `--dry-run` to preview what would be uploaded without sending anything. Only files you explicitly point `--context` at are uploaded -- no automatic scanning of parent directories or home folders.
+
+**Non-interactive mode**: When stdin is not a TTY (agent/CI use), confirmation prompts are automatically skipped. This is by design for agent integration but means an autonomous agent with file system access could trigger uploads. Restrict the paths agents can access, or use `--dry-run` and `--max-cost` guards.
+
+**No obfuscation**: All code is readable Python with PEP 723 inline metadata. No binary blobs, no minified scripts, no telemetry, no analytics. The full source is auditable at [github.com/24601/agent-deep-research](https://github.com/24601/agent-deep-research).
+
+**Local state**: Research session state is written to `.gemini-research.json` in the working directory. This file contains interaction IDs, store mappings, and upload hashes -- no credentials or research content. Use `state.py gc` to clean up orphaned stores from crashed runs.
 
 ## Prerequisites
 
