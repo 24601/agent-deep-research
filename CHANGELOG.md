@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2026-02-21
+
+### Fixed
+- **ClawHub metadata format**: switched from nested YAML to inline JSON string for `metadata` field, matching the format that ClawHub's parser reliably extracts into structured registry data (bins, env vars, install spec). Nested YAML was parsed but not surfaced to the registry UI.
+
 ## [2.0.3] - 2026-02-21
 
 ### Security
@@ -126,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.0.4]: https://github.com/24601/agent-deep-research/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/24601/agent-deep-research/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/24601/agent-deep-research/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/24601/agent-deep-research/compare/v2.0.0...v2.0.1
