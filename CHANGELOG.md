@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-02-24
+
+### Security
+- **CRITICAL: SSRF via WeasyPrint** -- PDF export now uses a custom `url_fetcher` that blocks all URL fetching, preventing SSRF and local file exfiltration via malicious markdown (e.g., `![](file:///etc/passwd)` or `<img src="http://169.254.169.254/">`)
+- **YAML frontmatter quoting** -- all SKILL.md values containing colons are now properly double-quoted, and the `metadata` field is single-quoted. Fixes YAML parse failures in Codex, ClawHub scanner, and strict YAML parsers that caused the "suspicious" classification
+- **Follow-up sanitization hardened** -- now strips ALL XML-like tags from previous research output (was only stripping `</previous_findings>`), preventing prompt injection via `<system>`, `<instructions>`, or delimiter escape attacks
+
+### Added
+- **CLAUDE.md** -- project instructions covering security rules, ClawHub compliance, testing checklist, and release process for all future updates
+
 ## [2.1.0] - 2026-02-24
 
 ### Security
@@ -138,6 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.1.1]: https://github.com/24601/agent-deep-research/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/24601/agent-deep-research/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/24601/agent-deep-research/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/24601/agent-deep-research/compare/v2.0.2...v2.0.3

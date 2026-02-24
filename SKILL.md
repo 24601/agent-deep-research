@@ -1,10 +1,10 @@
 ---
 name: deep-research
-description: Async deep research via Gemini Interactions API (no Gemini CLI dependency). RAG-ground queries on local files (--context), preview costs (--dry-run), structured JSON output, adaptive polling. Universal skill for 30+ AI agents including Claude Code, Amp, Codex, and Gemini CLI.
+description: "Async deep research via Gemini Interactions API (no Gemini CLI dependency). RAG-ground queries on local files (--context), preview costs (--dry-run), structured JSON output, adaptive polling. Universal skill for 30+ AI agents including Claude Code, Amp, Codex, and Gemini CLI."
 license: MIT
-compatibility: Requires uv and one of GOOGLE_API_KEY / GEMINI_API_KEY / GEMINI_DEEP_RESEARCH_API_KEY. Optional env vars for model config: GEMINI_DEEP_RESEARCH_AGENT, GEMINI_DEEP_RESEARCH_MODEL, GEMINI_MODEL. Network access to Google Gemini API. --context uploads local files to ephemeral stores (auto-deleted).
-allowed-tools: Bash(uv:*) Bash(python3:*) Read
-metadata: {"version":"2.1.0","author":"24601","clawdbot":{"emoji":"🔬","category":"research","primaryEnv":"GOOGLE_API_KEY","homepage":"https://github.com/24601/agent-deep-research","requires":{"bins":["uv"],"env":["GOOGLE_API_KEY","GEMINI_API_KEY","GEMINI_DEEP_RESEARCH_API_KEY","GEMINI_DEEP_RESEARCH_AGENT","GEMINI_DEEP_RESEARCH_MODEL","GEMINI_MODEL"]},"install":[{"kind":"uv","label":"uv (Python package runner)","package":"uv"}],"config":{"requiredEnv":["GOOGLE_API_KEY","GEMINI_API_KEY","GEMINI_DEEP_RESEARCH_API_KEY"],"example":"export GOOGLE_API_KEY='your-key-from-aistudio.google.com'"}}}
+compatibility: "Requires uv and one of GOOGLE_API_KEY / GEMINI_API_KEY / GEMINI_DEEP_RESEARCH_API_KEY. Optional env vars for model config: GEMINI_DEEP_RESEARCH_AGENT, GEMINI_DEEP_RESEARCH_MODEL, GEMINI_MODEL. Network access to Google Gemini API. --context uploads local files to ephemeral stores (auto-deleted)."
+allowed-tools: "Bash(uv:*) Bash(python3:*) Read"
+metadata: '{"version":"2.1.1","author":"24601","clawdbot":{"emoji":"🔬","category":"research","primaryEnv":"GOOGLE_API_KEY","homepage":"https://github.com/24601/agent-deep-research","requires":{"bins":["uv"],"env":["GOOGLE_API_KEY","GEMINI_API_KEY","GEMINI_DEEP_RESEARCH_API_KEY","GEMINI_DEEP_RESEARCH_AGENT","GEMINI_DEEP_RESEARCH_MODEL","GEMINI_MODEL"]},"install":[{"kind":"uv","label":"uv (Python package runner)","package":"uv"}],"config":{"requiredEnv":["GOOGLE_API_KEY","GEMINI_API_KEY","GEMINI_DEEP_RESEARCH_API_KEY"],"example":"export GOOGLE_API_KEY=your-key-from-aistudio.google.com"}}}'
 ---
 
 # Deep Research Skill
