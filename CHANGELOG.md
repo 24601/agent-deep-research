@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-02-24
+
+### Security
+- **Sensitive file filtering**: `--context` uploads now automatically skip `.env*`, `credentials.json`, `secrets.*`, private keys (`.pem`, `.key`), auth tokens (`.npmrc`, `.pypirc`, `.netrc`), and build directories (`node_modules`, `__pycache__`, `.git`, `dist`, `build`). Applied to both `research.py` and `upload.py`. Skipped files are reported to stderr.
+- **API key echo removed**: `onboard.py --interactive` no longer echoes back user-provided API keys to the terminal
+- Cross-validated by Gemini 3.1 Pro and Codex
+
 ## [2.0.4] - 2026-02-21
 
 ### Fixed
@@ -131,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.1.0]: https://github.com/24601/agent-deep-research/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/24601/agent-deep-research/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/24601/agent-deep-research/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/24601/agent-deep-research/compare/v2.0.1...v2.0.2

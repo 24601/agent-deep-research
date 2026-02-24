@@ -164,7 +164,7 @@ def cmd_check() -> None:
 
 CAPABILITIES_MANIFEST = {
     "skill": "deep-research",
-    "version": "2.0.4",
+    "version": "2.1.0",
     "description": "Deep research and RAG-grounded file search powered by Google Gemini",
     "commands": {
         "research": {
@@ -353,7 +353,7 @@ def cmd_interactive() -> None:
             if _validate_api_key(raw_key.strip()):
                 console.print("[green]Valid[/green]")
                 console.print(f"  Add to your shell profile:")
-                console.print(f"    export GOOGLE_API_KEY='{raw_key.strip()}'")
+                console.print(f"    export GOOGLE_API_KEY='<your-key>'")
             else:
                 console.print("[red]Failed[/red] -- check the key and try again.")
 

@@ -253,19 +253,65 @@ def _file_hash(filepath: Path) -> str:
     return h.hexdigest()
 
 
+# Sensitive file patterns that should NEVER be uploaded to remote APIs
+_SENSITIVE_PATTERNS: set[str] = {
+    ".env", ".env.local", ".env.production", ".env.development",
+    ".env.staging", ".env.test", ".env.example",
+    "credentials.json", "service-account.json", "serviceaccount.json",
+    "secrets.json", "secrets.yaml", "secrets.yml",
+    ".npmrc", ".pypirc", ".netrc", ".pgpass",
+    "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa",
+    ".pem", ".key", ".p12", ".pfx", ".keystore",
+}
+
+_SENSITIVE_EXTENSIONS: set[str] = {
+    ".pem", ".key", ".p12", ".pfx", ".keystore", ".jks",
+}
+
+
+def _is_sensitive_file(filepath: Path) -> bool:
+    """Return True if the file looks like it contains secrets or credentials."""
+    name_lower = filepath.name.lower()
+    if name_lower in _SENSITIVE_PATTERNS:
+        return True
+    if filepath.suffix.lower() in _SENSITIVE_EXTENSIONS:
+        return True
+    # Check for common secret file naming patterns
+    if name_lower.startswith(".env"):
+        return True
+    return False
+
+
 def _collect_files(
     root: Path,
     extensions: set[str] | None = None,
 ) -> list[Path]:
-    """Recursively collect uploadable files from a directory."""
+    """Recursively collect uploadable files from a directory.
+
+    Filters out sensitive files (credentials, keys, .env) to prevent
+    accidental upload of secrets to remote APIs.
+    """
     files: list[Path] = []
+    skipped_sensitive: list[str] = []
     for p in sorted(root.rglob("*")):
         if not p.is_file():
             continue
+        # Skip common build/cache directories
+        if any(part in _SKIP_DIRS for part in p.parts):
+            continue
         if extensions and p.suffix.lower() not in extensions:
+            continue
+        if _is_sensitive_file(p):
+            skipped_sensitive.append(p.name)
             continue
         if _resolve_mime(p) is not None:
             files.append(p)
+    if skipped_sensitive:
+        console.print(
+            f"[yellow]Skipped {len(skipped_sensitive)} sensitive file(s):[/yellow] "
+            f"{', '.join(skipped_sensitive[:5])}"
+            f"{'...' if len(skipped_sensitive) > 5 else ''}"
+        )
     return files
 
 

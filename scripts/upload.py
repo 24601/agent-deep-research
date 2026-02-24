@@ -187,16 +187,39 @@ def file_hash(filepath: Path) -> str:
     return h.hexdigest()
 
 
+# Sensitive files that should never be uploaded
+_SENSITIVE_NAMES: set[str] = {
+    ".env", ".env.local", ".env.production", ".env.development",
+    "credentials.json", "service-account.json", "secrets.json",
+    "secrets.yaml", "secrets.yml", ".npmrc", ".pypirc", ".netrc",
+    "id_rsa", "id_ed25519", "id_ecdsa",
+}
+_SENSITIVE_EXTENSIONS: set[str] = {".pem", ".key", ".p12", ".pfx", ".keystore", ".jks"}
+_SKIP_DIRS: set[str] = {"__pycache__", "node_modules", ".git", ".tox", "dist", "build"}
+
+
 def collect_files(
     root: Path,
     extensions: set[str] | None = None,
 ) -> list[Path]:
-    """Recursively collect uploadable files from a directory."""
+    """Recursively collect uploadable files from a directory.
+
+    Filters out sensitive files and common build directories.
+    """
     files: list[Path] = []
     for p in sorted(root.rglob("*")):
         if not p.is_file():
             continue
+        if any(part in _SKIP_DIRS for part in p.parts):
+            continue
         if extensions and p.suffix.lower() not in extensions:
+            continue
+        name_lower = p.name.lower()
+        if name_lower in _SENSITIVE_NAMES or name_lower.startswith(".env"):
+            console.print(f"[yellow]Skipping sensitive file:[/yellow] {p.name}")
+            continue
+        if p.suffix.lower() in _SENSITIVE_EXTENSIONS:
+            console.print(f"[yellow]Skipping sensitive file:[/yellow] {p.name}")
             continue
         if resolve_mime(p) is not None:
             files.append(p)
