@@ -116,6 +116,8 @@ uv run {baseDir}/scripts/research.py start "your research question"
 
 The `start` subcommand is the default, so `research.py "question"` and `research.py start "question"` are equivalent.
 
+**Important**: When `--output` or `--output-dir` is used, the command blocks until research completes (2-10+ minutes). Do not background it with `&`. Use non-blocking mode (omit `--output`) to get an ID immediately, then poll with `status` and save with `report`.
+
 ### Check Status
 
 ```bash

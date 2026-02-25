@@ -102,6 +102,27 @@ uv run {baseDir}/scripts/research.py start "Dive deeper into finding #3" \
   --follow-up <previous-interaction-id> --output followup.md
 ```
 
+## Important: Blocking Behavior
+
+When `--output` or `--output-dir` is used, the command **blocks until research completes** (typically 2-10 minutes, up to 30+ for deep research). This is by design -- the report is only written after the Gemini API returns results.
+
+**DO NOT** background the command with shell `&` -- this detaches the process and you lose the output. Instead:
+- Use your agent framework's native background execution (e.g., `run_in_background: true` in Claude Code's Bash tool)
+- Or use non-blocking mode (no `--output` flag), which returns immediately with `{"id": "...", "status": "in_progress"}`, then poll with `status` and retrieve with `report --output`
+
+**Non-blocking pattern** (recommended for agent use):
+```bash
+# 1. Start (returns immediately)
+RESULT=$(uv run {baseDir}/scripts/research.py start "question" 2>/dev/null)
+ID=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+# 2. Poll until complete
+uv run {baseDir}/scripts/research.py status "$ID" 2>/dev/null
+
+# 3. Save when done
+uv run {baseDir}/scripts/research.py report "$ID" --output report.md
+```
+
 ## Configuration Requirements
 
 | Requirement | How to Check | How to Fix |
