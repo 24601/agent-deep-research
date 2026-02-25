@@ -1193,6 +1193,20 @@ def cmd_start(args: argparse.Namespace) -> None:
                 console.print(f"[red]Error reading file:[/red] {exc}")
                 sys.exit(1)
 
+    # Validate output paths before starting (to avoid spending API $ then failing)
+    output_dir = getattr(args, "output_dir", None)
+    if args.output:
+        output_parent = Path(args.output).parent
+        if not output_parent.exists():
+            console.print(f"[red]Error:[/red] Output directory does not exist: {output_parent}")
+            console.print("Create it first, or use a different path.")
+            sys.exit(1)
+    if output_dir:
+        output_dir_parent = Path(output_dir).parent
+        if not output_dir_parent.exists():
+            console.print(f"[red]Error:[/red] Output directory parent does not exist: {output_dir_parent}")
+            sys.exit(1)
+
     # Build create kwargs
     create_kwargs: dict = {
         "input": query,
@@ -1231,7 +1245,6 @@ def cmd_start(args: argparse.Namespace) -> None:
     console.print("Use [bold]research.py status[/bold] to check progress.")
 
     # If --output or --output-dir is set, poll until complete then save
-    output_dir = getattr(args, "output_dir", None)
     grounded = file_search_store_names is not None
     adaptive_poll = not getattr(args, "no_adaptive_poll", False)
     keep_context = getattr(args, "keep_context", False)
