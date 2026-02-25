@@ -164,7 +164,7 @@ def cmd_check() -> None:
 
 CAPABILITIES_MANIFEST = {
     "skill": "deep-research",
-    "version": "2.1.2",
+    "version": "2.1.3",
     "description": "Deep research and RAG-grounded file search powered by Google Gemini",
     "commands": {
         "research": {

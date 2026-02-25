@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Requires uv and one of GOOGLE_API_KEY / GEMINI_API_KEY / GEMINI_DEEP_RESEARCH_API_KEY. Optional env vars for model config: GEMINI_DEEP_RESEARCH_AGENT, GEMINI_DEEP_RESEARCH_MODEL, GEMINI_MODEL. Network access to Google Gemini API. --context uploads local files to ephemeral stores (auto-deleted)."
 allowed-tools: "Bash(uv:*) Bash(python3:*) Read"
 metadata:
-  version: "2.1.2"
+  version: "2.1.3"
   author: "24601"
   clawdbot:
     emoji: "🔬"
