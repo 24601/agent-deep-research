@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2026-02-25
+
+### Fixed
+- **Output path validation**: `--output` and `--output-dir` paths are now validated before starting research, preventing wasted API spend when the target directory doesn't exist
+- **Agent blocking behavior**: added explicit warnings to AGENTS.md and SKILL.md about `--output` blocking behavior and the recommended non-blocking pattern for agent callers
+
 ## [2.1.1] - 2026-02-24
 
 ### Security
@@ -148,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint, Prettier, Jest configuration
 - Build infrastructure (`build.mjs`, `release/`)
 
+[2.1.2]: https://github.com/24601/agent-deep-research/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/24601/agent-deep-research/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/24601/agent-deep-research/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/24601/agent-deep-research/compare/v2.0.3...v2.0.4
