@@ -420,3 +420,7 @@ This project was originally forked from [allenhutchison/gemini-cli-deep-research
 ## License
 
 [MIT](LICENSE)
+
+## Download History
+
+[![Download History](https://skill-history.com/chart/24601/agent-deep-research.svg)](https://skill-history.com/24601/agent-deep-research)
